@@ -2,7 +2,10 @@ package com.pakem.ui;
 
 import com.pakem.model.User;
 import com.pakem.model.enums.RoleUser;
+import com.pakem.service.impl.AnggotaServiceImpl;
+import com.pakem.service.interfaces.IAnggotaService;
 import com.pakem.service.interfaces.IAuthService;
+import com.pakem.ui.anggota.AnggotaListPanel;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -37,6 +40,7 @@ public class MainFrame extends JFrame {
     private static final String CARD_APP = "CARD_APP";
 
     private final IAuthService authService;
+    private final IAnggotaService anggotaService;
     private final CardLayout mainCardLayout;
     private final JPanel mainContainer;
 
@@ -48,7 +52,12 @@ public class MainFrame extends JFrame {
     private final List<JButton> sidebarButtons = new ArrayList<>();
 
     public MainFrame(IAuthService authService) {
+        this(authService, new AnggotaServiceImpl());
+    }
+
+    public MainFrame(IAuthService authService, IAnggotaService anggotaService) {
         this.authService = authService;
+        this.anggotaService = anggotaService;
         this.mainCardLayout = new CardLayout();
         this.mainContainer = new JPanel(mainCardLayout);
 
@@ -100,10 +109,10 @@ public class MainFrame extends JFrame {
         // Tambah Halaman Dashboard
         contentArea.add(createDashboardPanel(user), "NAV_DASHBOARD");
 
-        // Tambah Halaman Placeholder untuk modul-modul fase selanjutnya
-        contentArea.add(createPlaceholderPanel("Data Anggota", "Fase 2",
-                user.canEditAnggota() ? "Hak Akses: Penuh (Tambah, Edit, Status)" : "Hak Akses: Terbatas (Lihat Detail & Usulan Tingkat)"), "NAV_ANGGOTA");
+        // Modul Fase 2: Manajemen Data Anggota Aktif
+        contentArea.add(new AnggotaListPanel(anggotaService, user), "NAV_ANGGOTA");
 
+        // Tambah Halaman Placeholder untuk modul-modul fase selanjutnya
         contentArea.add(createPlaceholderPanel("Kategori Tingkat & Subkelompok", "Fase 3",
                 user.canManageKategoriTingkat() ? "Hak Akses: Penuh (Kelola Master & Auto-Grouping)" : "Hak Akses: Terbatas (Lihat Master)"), "NAV_KATEGORI");
 

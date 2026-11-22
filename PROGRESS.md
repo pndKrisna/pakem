@@ -4,7 +4,7 @@ Dokumen ini mencatat riwayat pengerjaan bertahap, class penting yang telah dibua
 
 ---
 
-## 📌 Status Terakhir: Fase 1 Selesai (Autentikasi & Hak Akses Polimorfik)
+## 📌 Status Terakhir: Fase 2 Selesai (Manajemen Data Anggota & Riwayat Tingkat)
 - **Tanggal:** 22 November 2026
 - **Status:** ✅ Selesai, Terintegrasi dengan Database MySQL, & Teruji 100%
 - **Target Platform:** Java 25, Apache Maven, FlatLaf, MySQL JDBC
@@ -15,7 +15,7 @@ Dokumen ini mencatat riwayat pengerjaan bertahap, class penting yang telah dibua
 
 ### 🔹 Fase 0 — Fondasi Proyek (Selesai ✅)
 1. **Dokumentasi Perancangan:**
-   - Menyalin `rancangan_pakem.md` ke direktori utama berdampingan dengan `prd_pakem_v1_0.md`.
+   - Menyalin `rancangan_pakem.md` ke root repositori berdampingan dengan `prd_pakem_v1_0.md`.
 2. **Struktur Maven & Git:**
    - Membuat `pom.xml` untuk Java 25 dengan FlatLaf 3.5.4 dan MySQL Connector/J 8.3.0.
    - Membuat `.gitignore` standar Java/Maven/IDE.
@@ -28,86 +28,97 @@ Dokumen ini mencatat riwayat pengerjaan bertahap, class penting yang telah dibua
 ---
 
 ### 🔹 Fase 1 — Autentikasi & Hak Akses (Selesai ✅)
+1. **Model & Enums:** `RoleUser`, `User`, `Pengurus`, `Pelatih` dengan factory method polimorfik dan matriks hak akses.
+2. **DAO Layer:** `IUserDao` dan `UserDaoImpl` (JDBC).
+3. **Service Layer:** `IAuthService` dan `AuthServiceImpl` (hashing SHA-256 dan verifikasi password constant-time).
+4. **UI Layer:** `LoginPanel` (card view modern FlatLaf) dan `MainFrame` (transisi card layout, topbar, dan navigasi dinamis berbasis peran).
+5. **Pengujian:** `AuthTest` lulus 4 skenario pengujian 100%.
 
-#### 1. Penerapan PBO (Encapsulation, Inheritance, & Polymorphism)
-- **`com.pakem.model.enums.RoleUser`**: Enum peran pengguna (`PENGURUS`, `PELATIH`).
-- **`com.pakem.model.User`**: Abstract class dasar dengan prinsip enkapsulasi (semua field `private` dengan getter/setter), factory method `User.create(...)`, serta kontrak hak akses polimorfik:
-  - `canEditAnggota()`
-  - `canUpdateTingkatAnggota()`
-  - `canManageKategoriTingkat()`
-  - `canManageJadwalLatihan()`
-  - `canManageMateriTabuh()`
-  - `canRecordPresensi()`
-  - `canManageEvent()`
-  - `canRecordKesediaanPemain()`
-  - `canAccessHonor()`
-  - `canAccessIuran()`
-  - `canAccessPengaturan()`
-- **`com.pakem.model.Pengurus extends User`**: Mewarisi `User`, mengembalikan `true` untuk seluruh fitur administratif dan finansial.
-- **`com.pakem.model.Pelatih extends User`**: Mewarisi `User`, mengimplementasikan isolasi hak akses (membatasi akses ke data honor, iuran bulanan, konfigurasi sanggar, dan pembatasan master kategori tingkat).
+---
+
+### 🔹 Fase 2 — Manajemen Data Anggota & Riwayat Tingkat (Selesai ✅)
+
+#### 1. Penerapan PBO (Model & Enums)
+- **`com.pakem.model.enums.StatusAnggota`**: Enum status keanggotaan:
+  - `AKTIF`: Anggota aktif rutin berkegiatan (muncul pada presensi, calon tim event, dan tagihan iuran).
+  - `VAKUM`: Cuti sementara (otomatis disembunyikan dari presensi baru dan tagihan iuran).
+  - `NONAKTIF`: Berhenti permanen (diarsipkan, riwayat presensi/tingkat tetap abadi).
+- **`com.pakem.model.Anggota`**: Model data anggota dengan enkapsulasi (ID, Nama Lengkap, Nomor Kontak, Tanggal Bergabung, Status, Kategori Tingkat ID, Subkelompok ID, Catatan, Timestamp).
+- **`com.pakem.model.RiwayatTingkat`**: Model log riwayat perubahan tingkat kemampuan anggota (Anggota ID, Tingkat Lama ID, Tingkat Baru ID, Tanggal Perubahan, Keterangan).
+- **`com.pakem.model.KategoriTingkat`** & **`com.pakem.model.Subkelompok`**: Model pendukung untuk struktur pengelompokan anggota.
 
 #### 2. Lapisan Akses Data (DAO & Abstraction)
-- **`com.pakem.dao.interfaces.IUserDao`**: Kontrak interface DAO untuk entitas User (`findByUsername`, `findById`, `findAll`, `save`, `updatePassword`, `updateStatus`).
-- **`com.pakem.dao.impl.UserDaoImpl`**: Implementasi JDBC murni menggunakan `PreparedStatement`, memetakan hasil query secara polimorfik ke instance `Pengurus` atau `Pelatih`.
+- **`com.pakem.dao.interfaces.IAnggotaDao`** & **`AnggotaDaoImpl`**:
+  - `findAll(filterStatus, searchKeyword)`: Mengambil daftar anggota dengan filter status opsional dan pencarian wildcard (nama, kontak, catatan).
+  - `findById(id)`, `save(anggota)`, `update(anggota)`, `updateStatus(id, newStatus)`.
+  - `countByStatus(status)`, `countTotal()`: Untuk statistik ringkasan anggota.
+- **`com.pakem.dao.interfaces.IRiwayatTingkatDao`** & **`RiwayatTingkatDaoImpl`**:
+  - `save(riwayat)`: Mencatat mutasi tingkat anggota.
+  - `findByAnggotaId(anggotaId)`: Mengambil seluruh riwayat tingkat anggota terurut waktu terbaru.
+- **`com.pakem.dao.interfaces.IKategoriTingkatDao`** & **`ISubkelompokDao`** (beserta implementasinya): Menyediakan daftar master kategori dan subkelompok untuk komponen dropdown.
 
 #### 3. Lapisan Logika Bisnis (Service Layer)
-- **`com.pakem.service.interfaces.IAuthService`**: Kontrak interface layanan autentikasi.
-- **`com.pakem.service.impl.AuthServiceImpl`**:
-  - Validasi username dan password tidak boleh kosong.
-  - Verifikasi pengguna dan status keaktifan akun (`isActive`).
-  - Hashing dan verifikasi password menggunakan algoritma **SHA-256** dengan perbandingan constant-time (`MessageDigest.isEqual`).
-  - Pengelolaan sesi pengguna aktif (`currentUser`).
+- **`com.pakem.service.interfaces.IAnggotaService`** & **`AnggotaServiceImpl`**:
+  - Validasi ketat nama lengkap dan tanggal bergabung.
+  - **Otomatisasi Log Riwayat Awal:** Saat anggota baru didaftarkan dengan kategori tingkat, sistem otomatis mencatat entri pertama ke `riwayat_tingkat`.
+  - **Deteksi Perubahan Tingkat:** Saat data anggota diperbarui, jika nilai `kategoriTingkatId` berubah dari nilai lama, sistem otomatis mencatat log mutasi tingkat baru ke `riwayat_tingkat` dengan tanggal dan keterangan alasan perubahan.
+  - **Isolasi Status Keanggotaan:** Pengubahan status ke `VAKUM` atau `NONAKTIF` mengisolasi anggota dari query berstatus `AKTIF` tanpa menghapus riwayat historisnya.
 
 #### 4. Lapisan Antarmuka Pengguna (Swing + FlatLaf UI)
-- **`com.pakem.ui.LoginPanel`**:
-  - Desain modern card view dengan tema FlatLaf.
-  - Form username dan password (dengan placeholder dan submit via tombol atau tombol Enter).
-  - Indikator notifikasi error berwarna merah jika autentikasi gagal.
-  - Hint informasi kredensial akun bawaan untuk memudahkan pengujian.
-- **`com.pakem.ui.MainFrame`**:
-  - Container tunggal berbasis `CardLayout` (`CARD_LOGIN` dan `CARD_APP`) yang bebas kedipan (*flicker-free*).
-  - Header (Top Bar): Nama sanggar, username aktif, badge peran polimorfik (`[Pengurus]` / `[Pelatih]`), serta tombol konfirmasi Logout.
-  - Sidebar Navigasi Dinamis:
-    - Menampilkan modul operasional umum (Dashboard, Data Anggota, Kategori, Jadwal, Presensi, Event).
-    - **Menu Iuran Bulanan** dan **Pengaturan Sanggar** otomatis disembunyikan jika login sebagai **Pelatih** (`user.canAccessIuran()` & `user.canAccessPengaturan()`).
-  - Halaman Dashboard: Menyajikan greeting pengguna dan tabel **Matriks Hak Akses Peran Aktif** secara transparan.
-  - Placeholder Pages: Panel informasi estetik untuk modul-modul yang akan dikerjakan pada fase berikutnya.
-- **`com.pakem.Main`**: Entry point utama yang menginisialisasi FlatLaf Look and Feel, menguji database, dan menampilkan `MainFrame`.
+- **`com.pakem.ui.anggota.AnggotaListPanel`**:
+  - Toolbar: Dropdown filter status (Semua / Aktif / Vakum / Nonaktif), text field pencarian cepat, tombol Refresh.
+  - Tombol aksi: "+ Tambah Anggota", "Ubah Data", "Riwayat Tingkat", "Ubah Status...".
+  - Tabel interaktif dengan **StatusBadgeRenderer**: Pill status berwarna hijau untuk Aktif, kuning/amber untuk Vakum, dan abu-abu untuk Nonaktif.
+  - Bottom Summary Bar: Menampilkan total anggota dan rincian per status secara real-time.
+- **`com.pakem.ui.anggota.AnggotaFormDialog`**:
+  - Dialog pendaftaran dan edit data anggota.
+  - Dropdown Kategori Tingkat terhubung secara dinamis dengan Dropdown Subkelompok.
+  - Field alasan kenaikan tingkat yang otomatis tersorot saat kategori tingkat diubah dari nilai semula.
+  - **Dukungan Polimorfisme Peran:** Jika login sebagai **Pelatih** (`!currentUser.canEditAnggota()`), form identitas utama (nama, kontak, tgl bergabung, status) otomatis menjadi read-only, namun pengubahan/usulan Kategori Tingkat dan Catatan tetap diizinkan sesuai PRD.
+- **`com.pakem.ui.anggota.RiwayatTingkatDialog`**:
+  - Modal dialog yang menampilkan tabel kronologis mutasi tingkat anggota beserta tanggal, tingkat lama, tingkat baru, dan keterangan alasan.
+- **Integrasi `MainFrame`**:
+  - Tab "Data Anggota" pada sidebar kini langsung membuka `AnggotaListPanel` aktif.
 
 #### 5. Pengujian & Verifikasi
-- Kelas pengujian: `src/test/java/com/pakem/AuthTest.java`.
-- Hasil pengujian terhadap database aktual `pakem_db`:
-  - ✅ **Test 1:** Login Pengurus (`pengurus`/`pengurus123`) berhasil, instance polimorfik `Pengurus` valid, hak akses honor/iuran/pengaturan = `true`.
-  - ✅ **Test 2:** Login Pelatih (`pelatih`/`pelatih123`) berhasil, instance polimorfik `Pelatih` valid, hak akses honor/iuran/pengaturan = `false`, hak akses latihan/presensi = `true`.
-  - ✅ **Test 3:** Penolakan password salah berhasil ditolak dengan pesan yang sesuai.
-  - ✅ **Test 4:** Penolakan username tidak terdaftar berhasil ditolak dengan pesan yang sesuai.
-- Status Kompilasi: **`mvn compile` BUILD SUCCESS** (0 error, 0 warning).
+- Pengujian otomatis [AnggotaTest.java](file:///c:/Users/Acer/Documents/GitHub/pakem/src/test/java/com/pakem/AnggotaTest.java) dijalankan langsung ke database MySQL:
+  - ✅ **Test 1:** Simpan anggota baru berhasil dengan auto-increment ID.
+  - ✅ **Test 2:** Riwayat awal anggota otomatis tercatat di `riwayat_tingkat`.
+  - ✅ **Test 3:** Anggota aktif tampil di filter AKTIF.
+  - ✅ **Test 4:** Perubahan tingkat (Dasar ke Madya) berhasil & riwayat kenaikan tercatat lengkap.
+  - ✅ **Test 5:** Isolasi status VAKUM berhasil (hilang dari filter aktif, tetap ada di arsip).
+  - ✅ **Test 6:** Isolasi status NONAKTIF berhasil & seluruh riwayat tingkat tetap abadi.
+  - ✅ **Test 7:** Ringkasan statistik jumlah anggota akurat.
+- Kompilasi Maven: **`mvn compile` BUILD SUCCESS** (0 error, 0 warning).
 
 ---
 
 ## 🚀 Cara Menjalankan Aplikasi untuk Pengujian Mandiri
 
-Anda dapat menjalankan antarmuka desktop aplikasi Pakem melalui terminal dengan perintah:
+Jalankan antarmuka desktop aplikasi Pakem melalui terminal:
 
-```bash
-# Menggunakan Maven Exec Plugin
+```powershell
 mvn compile exec:java
-
-# Atau menggunakan java langsung
-java -cp "target/classes;C:\Users\Acer\.m2\repository\com\mysql\mysql-connector-j\8.3.0\mysql-connector-j-8.3.0.jar;C:\Users\Acer\.m2\repository\com\formdev\flatlaf\3.5.4\flatlaf-3.5.4.jar" com.pakem.Main
 ```
 
-**Kredensial untuk dicoba:**
-- **Pengurus:** `username: pengurus`, `password: pengurus123` (Menu Iuran & Pengaturan muncul di sidebar).
-- **Pelatih:** `username: pelatih`, `password: pelatih123` (Menu Iuran & Pengaturan otomatis hilang dari sidebar).
+**Skenario Pengujian yang Dapat Dicoba:**
+1. **Login sebagai Pengurus (`pengurus` / `pengurus123`):**
+   - Masuk ke menu **Data Anggota**.
+   - Coba tombol **+ Tambah Anggota**, isi nama, pilih kategori (misal: *Dasar*), dan simpan.
+   - Pilih anggota tersebut, klik **Ubah Data**, ubah kategorinya menjadi *Madya*, isi alasan perubahan tingkat, lalu simpan.
+   - Klik **Riwayat Tingkat** untuk melihat riwayat kenaikan tingkat yang tercatat otomatis.
+   - Coba tombol **Ubah Status...** menjadi *Vakum*, lalu amati badge status berubah warna kuning dan anggota hilang dari filter *Aktif Saja*.
+2. **Login sebagai Pelatih (`pelatih` / `pelatih123`):**
+   - Masuk ke menu **Data Anggota**.
+   - Tombol *+ Tambah Anggota* dan *Ubah Status* otomatis tersembunyi.
+   - Buka **Ubah Data**: field identitas menjadi disabled (read-only), namun kategori tingkat tetap dapat diusulkan/diubah.
 
 ---
 
-## ⏭️ Modul Berikutnya: Fase 2 (Manajemen Data Anggota)
-1. **Model & Enums:** `StatusAnggota` (`AKTIF`, `VAKUM`, `NONAKTIF`), POJO `Anggota`, dan `RiwayatTingkat`.
-2. **DAO Layer:** Interface `IAnggotaDao` dan implementasi `AnggotaDaoImpl` (CRUD anggota, filter status, pencatatan mutasi tingkat ke `riwayat_tingkat`).
-3. **Service Layer:** `IAnggotaService` dan `AnggotaServiceImpl` (aturan bisnis isolasi status keanggotaan dan riwayat tingkat).
-4. **UI Layer:**
-   - `AnggotaListPanel`: Tabel data anggota, filter status (Aktif/Vakum/Nonaktif), tombol Tambah/Ubah/Ubah Status (dinonaktifkan untuk Pelatih).
-   - `AnggotaFormDialog`: Dialog form input anggota baru dan edit.
-   - `RiwayatTingkatDialog`: Dialog riwayat perubahan tingkat anggota.
+## ⏭️ Modul Berikutnya: Fase 3 (Kategori Tingkat & Subkelompok)
+1. **DAO Layer:** Operasi CRUD penuh untuk `kategori_tingkat` dan `subkelompok`.
+2. **Service Layer:** `IKategoriService` (tambah/edit/hapus kategori, buat subkelompok, validasi kapasitas kelompok anjuran default 25 orang, dan algoritma **Auto-Grouping** pembagian merata anggota dengan dialog konfirmasi jika menimpa).
+3. **UI Layer:**
+   - `KategoriTingkatPanel`: Tampilan hierarki kategori tingkat dan daftar subkelompoknya, beserta indikator kapasitas anggota per kelompok.
+   - `SubkelompokDialog`: Form tambah/ubah subkelompok.
+   - Tombol dan dialog konfirmasi bantuan **Auto-Grouping**.
