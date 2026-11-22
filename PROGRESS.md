@@ -4,7 +4,7 @@ Dokumen ini mencatat riwayat pengerjaan bertahap, class penting yang telah dibua
 
 ---
 
-## 📌 Status Terakhir: Fase 2 Selesai (Manajemen Data Anggota & Riwayat Tingkat)
+## 📌 Status Terakhir: Fase 3 Selesai (Kategori Tingkat, Subkelompok, & Auto-Grouping)
 - **Tanggal:** 22 November 2026
 - **Status:** ✅ Selesai, Terintegrasi dengan Database MySQL, & Teruji 100%
 - **Target Platform:** Java 25, Apache Maven, FlatLaf, MySQL JDBC
@@ -37,58 +37,75 @@ Dokumen ini mencatat riwayat pengerjaan bertahap, class penting yang telah dibua
 ---
 
 ### 🔹 Fase 2 — Manajemen Data Anggota & Riwayat Tingkat (Selesai ✅)
+1. **Model & Enums:** `StatusAnggota`, `Anggota`, `RiwayatTingkat`, `KategoriTingkat`, `Subkelompok`.
+2. **DAO Layer:** `IAnggotaDao` & `AnggotaDaoImpl`, `IRiwayatTingkatDao` & `RiwayatTingkatDaoImpl`.
+3. **Service Layer:** `IAnggotaService` & `AnggotaServiceImpl` (pencatatan otomatis ke `riwayat_tingkat` pada registrasi dan promosi tingkat, serta isolasi status).
+4. **UI Layer:** `AnggotaListPanel`, `AnggotaFormDialog` (pembatasan hak akses pelatih), `RiwayatTingkatDialog`.
+5. **Pengujian:** `AnggotaTest` lulus 7 skenario pengujian 100%.
 
-#### 1. Penerapan PBO (Model & Enums)
-- **`com.pakem.model.enums.StatusAnggota`**: Enum status keanggotaan:
-  - `AKTIF`: Anggota aktif rutin berkegiatan (muncul pada presensi, calon tim event, dan tagihan iuran).
-  - `VAKUM`: Cuti sementara (otomatis disembunyikan dari presensi baru dan tagihan iuran).
-  - `NONAKTIF`: Berhenti permanen (diarsipkan, riwayat presensi/tingkat tetap abadi).
-- **`com.pakem.model.Anggota`**: Model data anggota dengan enkapsulasi (ID, Nama Lengkap, Nomor Kontak, Tanggal Bergabung, Status, Kategori Tingkat ID, Subkelompok ID, Catatan, Timestamp).
-- **`com.pakem.model.RiwayatTingkat`**: Model log riwayat perubahan tingkat kemampuan anggota (Anggota ID, Tingkat Lama ID, Tingkat Baru ID, Tanggal Perubahan, Keterangan).
-- **`com.pakem.model.KategoriTingkat`** & **`com.pakem.model.Subkelompok`**: Model pendukung untuk struktur pengelompokan anggota.
+---
 
-#### 2. Lapisan Akses Data (DAO & Abstraction)
-- **`com.pakem.dao.interfaces.IAnggotaDao`** & **`AnggotaDaoImpl`**:
-  - `findAll(filterStatus, searchKeyword)`: Mengambil daftar anggota dengan filter status opsional dan pencarian wildcard (nama, kontak, catatan).
-  - `findById(id)`, `save(anggota)`, `update(anggota)`, `updateStatus(id, newStatus)`.
-  - `countByStatus(status)`, `countTotal()`: Untuk statistik ringkasan anggota.
-- **`com.pakem.dao.interfaces.IRiwayatTingkatDao`** & **`RiwayatTingkatDaoImpl`**:
-  - `save(riwayat)`: Mencatat mutasi tingkat anggota.
-  - `findByAnggotaId(anggotaId)`: Mengambil seluruh riwayat tingkat anggota terurut waktu terbaru.
-- **`com.pakem.dao.interfaces.IKategoriTingkatDao`** & **`ISubkelompokDao`** (beserta implementasinya): Menyediakan daftar master kategori dan subkelompok untuk komponen dropdown.
+### 🔹 Fase 3 — Kategori Tingkat, Subkelompok, & Auto-Grouping (Selesai ✅)
 
-#### 3. Lapisan Logika Bisnis (Service Layer)
-- **`com.pakem.service.interfaces.IAnggotaService`** & **`AnggotaServiceImpl`**:
-  - Validasi ketat nama lengkap dan tanggal bergabung.
-  - **Otomatisasi Log Riwayat Awal:** Saat anggota baru didaftarkan dengan kategori tingkat, sistem otomatis mencatat entri pertama ke `riwayat_tingkat`.
-  - **Deteksi Perubahan Tingkat:** Saat data anggota diperbarui, jika nilai `kategoriTingkatId` berubah dari nilai lama, sistem otomatis mencatat log mutasi tingkat baru ke `riwayat_tingkat` dengan tanggal dan keterangan alasan perubahan.
-  - **Isolasi Status Keanggotaan:** Pengubahan status ke `VAKUM` atau `NONAKTIF` mengisolasi anggota dari query berstatus `AKTIF` tanpa menghapus riwayat historisnya.
+#### 1. Lapisan Akses Data (DAO & Abstraction)
+- **`com.pakem.dao.interfaces.ISettingsDao`** & **`SettingsDaoImpl`**:
+  - `get(key, defaultValue)` dan `set(key, value)`: Membaca dan memperbarui nilai pengaturan aplikasi (seperti kapasitas anjuran kelompok dari tabel `settings`).
+- **`com.pakem.dao.interfaces.IKategoriTingkatDao`** & **`KategoriTingkatDaoImpl`**:
+  - CRUD Kategori: `findAll()`, `findById(id)`, `save(kategori)`, `update(kategori)`, `delete(id)`.
+  - Validasi: `existsByNama(nama, excludeId)`, `countAnggota(kategoriId)`.
+  - Mengatur `kategori_tingkat_id = NULL` dan `subkelompok_id = NULL` pada anggota secara aman sebelum kategori dihapus.
+- **`com.pakem.dao.interfaces.ISubkelompokDao`** & **`SubkelompokDaoImpl`**:
+  - CRUD Subkelompok: `findByKategoriId(kategoriId)`, `findById(id)`, `save(subkelompok)`, `update(subkelompok)`, `delete(id)`.
+  - Validasi: `existsByNamaInKategori(nama, kategoriId, excludeId)`, `countAnggota(subkelompokId)`.
+  - Mengatur `subkelompok_id = NULL` pada anggota secara aman sebelum subkelompok dihapus.
+- **`com.pakem.dao.interfaces.IAnggotaDao`** (Ekstensi):
+  - `findByKategoriId(kategoriId, status)`: Mengambil anggota terfilter berdasarkan kategori tingkat dan status.
+  - `updateSubkelompok(anggotaId, subkelompokId)`: Memperbarui penempatan subkelompok anggota.
+  - `countHavingSubkelompokInKategori(kategoriId)`: Menghitung berapa banyak anggota aktif dalam kategori yang sudah memiliki subkelompok.
 
-#### 4. Lapisan Antarmuka Pengguna (Swing + FlatLaf UI)
-- **`com.pakem.ui.anggota.AnggotaListPanel`**:
-  - Toolbar: Dropdown filter status (Semua / Aktif / Vakum / Nonaktif), text field pencarian cepat, tombol Refresh.
-  - Tombol aksi: "+ Tambah Anggota", "Ubah Data", "Riwayat Tingkat", "Ubah Status...".
-  - Tabel interaktif dengan **StatusBadgeRenderer**: Pill status berwarna hijau untuk Aktif, kuning/amber untuk Vakum, dan abu-abu untuk Nonaktif.
-  - Bottom Summary Bar: Menampilkan total anggota dan rincian per status secara real-time.
-- **`com.pakem.ui.anggota.AnggotaFormDialog`**:
-  - Dialog pendaftaran dan edit data anggota.
-  - Dropdown Kategori Tingkat terhubung secara dinamis dengan Dropdown Subkelompok.
-  - Field alasan kenaikan tingkat yang otomatis tersorot saat kategori tingkat diubah dari nilai semula.
-  - **Dukungan Polimorfisme Peran:** Jika login sebagai **Pelatih** (`!currentUser.canEditAnggota()`), form identitas utama (nama, kontak, tgl bergabung, status) otomatis menjadi read-only, namun pengubahan/usulan Kategori Tingkat dan Catatan tetap diizinkan sesuai PRD.
-- **`com.pakem.ui.anggota.RiwayatTingkatDialog`**:
-  - Modal dialog yang menampilkan tabel kronologis mutasi tingkat anggota beserta tanggal, tingkat lama, tingkat baru, dan keterangan alasan.
+#### 2. Lapisan Logika Bisnis (Service Layer)
+- **`com.pakem.service.interfaces.IKategoriService`** & **`KategoriServiceImpl`**:
+  - CRUD Kategori Tingkat & Subkelompok dengan validasi nama unik dan nama tidak boleh kosong.
+  - `getKapasitasAnjuran()`: Mengambil kapasitas maksimal kelompok anjuran (default 25 orang) dari database settings.
+  - **Algoritma Auto-Grouping (`jalankanAutoGrouping`)**:
+    - Mengambil seluruh anggota aktif dalam kategori yang dipilih.
+    - Mengambil seluruh subkelompok dalam kategori tersebut.
+    - Membagi anggota secara merata menggunakan algoritma Round-Robin (`i % jumlahKelompok`).
+    - Validasi: Membutuhkan minimal 2 subkelompok dan minimal 1 anggota aktif.
+  - `apakahAdaAnggotaSudahPunyaSubkelompok(kategoriId)`: Memeriksa apakah ada anggota aktif yang sudah terdaftar di subkelompok sebelum auto-grouping dijalankan, untuk memicu dialog konfirmasi penimpaan (overwrite confirmation).
+
+#### 3. Lapisan Antarmuka Pengguna (Swing + FlatLaf UI)
+- **`com.pakem.ui.kategori.KategoriTingkatPanel`**:
+  - Tampilan *Split View*:
+    - **Panel Kiri:** Tabel daftar kategori tingkat beserta urutannya, total anggota per kategori, tombol tambah, ubah, dan hapus.
+    - **Panel Kanan:** 
+      - Daftar subkelompok dalam bentuk tabulasi/accordion interaktif.
+      - **Indikator Kapasitas Visual:** Badge modern penanda status kapasitas:
+        - `EMPTY`: Kelompok belum memiliki anggota (warna abu-abu).
+        - `OK`: Jumlah anggota dalam kapasitas anjuran (contoh `5 / 25 Anggota`, warna hijau).
+        - `OVER`: Melebihi kapasitas anjuran (contoh `⚠️ 28 / 25 Anggota (Melebihi Kapasitas)`, warna oranye kemerahan). *Tidak memblokir sistem, hanya sebagai peringatan visual.*
+      - **Tabel Anggota Kelompok:** Menampilkan daftar anggota dalam subkelompok dengan tombol "Pindah Kelompok".
+      - **Tombol "⚡ Auto-Grouping":** Mengotomatisasi pembagian anggota merata ke subkelompok yang tersedia. Jika sudah ada anggota yang memiliki subkelompok, muncul dialog peringatan konfirmasi sebelum menimpa penempatan kelompok.
+- **`com.pakem.ui.kategori.KategoriFormDialog`**:
+  - Form modal tambah/ubah nama kategori dan nomor urutan tampilannya.
+- **`com.pakem.ui.kategori.SubkelompokFormDialog`**:
+  - Form modal tambah/ubah nama subkelompok pada kategori tingkat yang dipilih.
+- **`com.pakem.ui.kategori.PindahSubkelompokDialog`**:
+  - Dialog pemindahan manual anggota antar-subkelompok atau pengembalian ke status belum memiliki kelompok.
 - **Integrasi `MainFrame`**:
-  - Tab "Data Anggota" pada sidebar kini langsung membuka `AnggotaListPanel` aktif.
+  - Menu sidebar "Kategori Tingkat" kini langsung membuka `KategoriTingkatPanel` yang aktif dan terintegrasi dengan basis data.
 
-#### 5. Pengujian & Verifikasi
-- Pengujian otomatis [AnggotaTest.java](file:///c:/Users/Acer/Documents/GitHub/pakem/src/test/java/com/pakem/AnggotaTest.java) dijalankan langsung ke database MySQL:
-  - ✅ **Test 1:** Simpan anggota baru berhasil dengan auto-increment ID.
-  - ✅ **Test 2:** Riwayat awal anggota otomatis tercatat di `riwayat_tingkat`.
-  - ✅ **Test 3:** Anggota aktif tampil di filter AKTIF.
-  - ✅ **Test 4:** Perubahan tingkat (Dasar ke Madya) berhasil & riwayat kenaikan tercatat lengkap.
-  - ✅ **Test 5:** Isolasi status VAKUM berhasil (hilang dari filter aktif, tetap ada di arsip).
-  - ✅ **Test 6:** Isolasi status NONAKTIF berhasil & seluruh riwayat tingkat tetap abadi.
-  - ✅ **Test 7:** Ringkasan statistik jumlah anggota akurat.
+#### 4. Pengujian & Verifikasi
+- Pengujian otomatis [KategoriTest.java](file:///c:/Users/Acer/Documents/GitHub/pakem/src/test/java/com/pakem/KategoriTest.java) dijalankan langsung ke database MySQL:
+  - ✅ **Test 1:** Tambah kategori tingkat baru berhasil.
+  - ✅ **Test 2:** Ubah nama dan urutan kategori berhasil.
+  - ✅ **Test 3:** Pembuatan 2 subkelompok berhasil.
+  - ✅ **Test 4:** Pendaftaran anggota aktif ke kategori berhasil.
+  - ✅ **Test 5:** Auto-Grouping merata berhasil (Round-Robin).
+  - ✅ **Test 6:** Deteksi penempatan subkelompok untuk dialog konfirmasi penimpaan valid.
+  - ✅ **Test 7:** Pemindahan manual anggota antar-subkelompok berhasil.
+  - ✅ **Test 8:** Pembacaan kapasitas anjuran kelompok dari settings (25 orang) akurat.
+  - ✅ **Test 9:** Hapus kategori aman (anggota tidak terhapus, foreign key di-null-kan).
 - Kompilasi Maven: **`mvn compile` BUILD SUCCESS** (0 error, 0 warning).
 
 ---
@@ -101,24 +118,29 @@ Jalankan antarmuka desktop aplikasi Pakem melalui terminal:
 mvn compile exec:java
 ```
 
-**Skenario Pengujian yang Dapat Dicoba:**
+**Skenario Pengujian Fase 3 yang Dapat Dicoba:**
 1. **Login sebagai Pengurus (`pengurus` / `pengurus123`):**
-   - Masuk ke menu **Data Anggota**.
-   - Coba tombol **+ Tambah Anggota**, isi nama, pilih kategori (misal: *Dasar*), dan simpan.
-   - Pilih anggota tersebut, klik **Ubah Data**, ubah kategorinya menjadi *Madya*, isi alasan perubahan tingkat, lalu simpan.
-   - Klik **Riwayat Tingkat** untuk melihat riwayat kenaikan tingkat yang tercatat otomatis.
-   - Coba tombol **Ubah Status...** menjadi *Vakum*, lalu amati badge status berubah warna kuning dan anggota hilang dari filter *Aktif Saja*.
+   - Buka menu **Kategori Tingkat** di sidebar.
+   - Pilih salah satu kategori di panel kiri (misal: *Dasar* atau *Lanjutan*).
+   - Di panel kanan, klik **+ Subkelompok** untuk membuat kelompok baru (misal: *Kelompok A* dan *Kelompok B*).
+   - Klik tombol **⚡ Auto-Grouping**: amati anggota aktif terbagi merata secara otomatis ke kelompok A dan B.
+   - Jika tombol **⚡ Auto-Grouping** diklik kembali, perhatikan sistem menampilkan dialog konfirmasi peringatan penimpaan kelompok yang sudah ada.
+   - Pilih salah satu anggota di tabel, klik tombol **Pindah Kelompok...** untuk memindahkan anggota secara manual ke kelompok lain.
+   - Amati badge kapasitas kelompok menampilkan status jumlah anggota (misal `12 / 25 Anggota`).
 2. **Login sebagai Pelatih (`pelatih` / `pelatih123`):**
-   - Masuk ke menu **Data Anggota**.
-   - Tombol *+ Tambah Anggota* dan *Ubah Status* otomatis tersembunyi.
-   - Buka **Ubah Data**: field identitas menjadi disabled (read-only), namun kategori tingkat tetap dapat diusulkan/diubah.
+   - Pelatih dapat melihat struktur kategori dan pembagian subkelompok secara transparan.
 
 ---
 
-## ⏭️ Modul Berikutnya: Fase 3 (Kategori Tingkat & Subkelompok)
-1. **DAO Layer:** Operasi CRUD penuh untuk `kategori_tingkat` dan `subkelompok`.
-2. **Service Layer:** `IKategoriService` (tambah/edit/hapus kategori, buat subkelompok, validasi kapasitas kelompok anjuran default 25 orang, dan algoritma **Auto-Grouping** pembagian merata anggota dengan dialog konfirmasi jika menimpa).
-3. **UI Layer:**
-   - `KategoriTingkatPanel`: Tampilan hierarki kategori tingkat dan daftar subkelompoknya, beserta indikator kapasitas anggota per kelompok.
-   - `SubkelompokDialog`: Form tambah/ubah subkelompok.
-   - Tombol dan dialog konfirmasi bantuan **Auto-Grouping**.
+## ⏭️ Modul Berikutnya: Fase 4 (Jadwal Latihan & Master Materi Tabuh)
+1. **Model:** `MateriTabuh`, `JadwalLatihan`, `SesiMateri`, `enums.JenisJadwal` (`RUTIN`, `KHUSUS_EVENT`).
+2. **DAO Layer:**
+   - `IMateriTabuhDao` & `MateriTabuhDaoImpl` (CRUD gending/materi).
+   - `IJadwalLatihanDao` & `JadwalLatihanDaoImpl` (CRUD jadwal rutin per kategori/subkelompok dan jadwal insidental event).
+   - `ISesiMateriDao` & `SesiMateriDaoImpl` (pencatatan materi latihan per sesi beserta catatan progres).
+3. **Service Layer:** `ILatihanService` (pencarian riwayat progres materi terakhir kelompok untuk referensi pelatih).
+4. **UI Layer:**
+   - Panel jadwal latihan (kalender/daftar jadwal terurut waktu, filter jenis dan kategori).
+   - Dialog pembuatan/edit jadwal latihan.
+   - Dialog sesi materi latihan (menampilkan catatan progres sesi sebelumnya dan input catatan baru).
+   - Fitur **"Salin Pengumuman"** (format teks pesan WhatsApp ke clipboard).

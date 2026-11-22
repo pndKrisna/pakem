@@ -23,6 +23,11 @@ public interface IAnggotaDao {
     Anggota findById(int id) throws SQLException;
 
     /**
+     * Mengambil seluruh anggota di dalam kategori tertentu.
+     */
+    List<Anggota> findByKategoriId(int kategoriId, boolean aktifSaja) throws SQLException;
+
+    /**
      * Menyimpan data anggota baru ke dalam database.
      */
     boolean save(Anggota anggota) throws SQLException;
@@ -36,6 +41,16 @@ public interface IAnggotaDao {
      * Memperbarui status keanggotaan (AKTIF, VAKUM, NONAKTIF).
      */
     boolean updateStatus(int id, StatusAnggota newStatus) throws SQLException;
+
+    /**
+     * Memperbarui penempatan subkelompok seorang anggota.
+     */
+    boolean updateSubkelompok(int id, Integer subkelompokId) throws SQLException;
+
+    /**
+     * Menghitung berapa anggota aktif di kategori ini yang sudah memiliki subkelompok.
+     */
+    int countHavingSubkelompokInKategori(int kategoriId) throws SQLException;
 
     /**
      * Menghitung jumlah anggota berdasarkan status.

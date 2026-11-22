@@ -11,4 +11,9 @@ public interface ISubkelompokDao {
     List<Subkelompok> findByKategoriId(int kategoriId) throws SQLException;
     List<Subkelompok> findAll() throws SQLException;
     Subkelompok findById(int id) throws SQLException;
+    boolean save(Subkelompok subkelompok) throws SQLException;
+    boolean update(Subkelompok subkelompok) throws SQLException;
+    boolean delete(int id) throws SQLException;
+    int countAnggota(int subkelompokId) throws SQLException;
+    boolean existsByNamaInKategori(int kategoriId, String nama, Integer excludeId) throws SQLException;
 }

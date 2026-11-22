@@ -88,6 +88,37 @@ public class AnggotaDaoImpl implements IAnggotaDao {
     }
 
     @Override
+    public List<Anggota> findByKategoriId(int kategoriId, boolean aktifSaja) throws SQLException {
+        List<Anggota> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT a.id, a.nama_lengkap, a.nomor_kontak, a.tanggal_bergabung, a.status, " +
+                "a.kategori_tingkat_id, a.subkelompok_id, a.catatan, a.created_at, a.updated_at, " +
+                "k.nama AS nama_kategori, s.nama AS nama_subkelompok " +
+                "FROM anggota a " +
+                "LEFT JOIN kategori_tingkat k ON a.kategori_tingkat_id = k.id " +
+                "LEFT JOIN subkelompok s ON a.subkelompok_id = s.id " +
+                "WHERE a.kategori_tingkat_id = ? "
+        );
+
+        if (aktifSaja) {
+            sql.append("AND a.status = 'AKTIF' ");
+        }
+
+        sql.append("ORDER BY a.nama_lengkap ASC");
+
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+            stmt.setInt(1, kategoriId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSetToAnggota(rs));
+                }
+            }
+        }
+        return list;
+    }
+
+    @Override
     public boolean save(Anggota anggota) throws SQLException {
         String sql = "INSERT INTO anggota (nama_lengkap, nomor_kontak, tanggal_bergabung, status, " +
                      "kategori_tingkat_id, subkelompok_id, catatan) " +
@@ -168,6 +199,36 @@ public class AnggotaDaoImpl implements IAnggotaDao {
             stmt.setInt(2, id);
             return stmt.executeUpdate() > 0;
         }
+    }
+
+    @Override
+    public boolean updateSubkelompok(int id, Integer subkelompokId) throws SQLException {
+        String sql = "UPDATE anggota SET subkelompok_id = ? WHERE id = ?";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            if (subkelompokId != null) {
+                stmt.setInt(1, subkelompokId);
+            } else {
+                stmt.setNull(1, Types.INTEGER);
+            }
+            stmt.setInt(2, id);
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    @Override
+    public int countHavingSubkelompokInKategori(int kategoriId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM anggota WHERE kategori_tingkat_id = ? AND subkelompok_id IS NOT NULL AND status = 'AKTIF'";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, kategoriId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
     }
 
     @Override

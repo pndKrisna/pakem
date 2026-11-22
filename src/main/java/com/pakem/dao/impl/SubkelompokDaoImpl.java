@@ -89,4 +89,80 @@ public class SubkelompokDaoImpl implements ISubkelompokDao {
         }
         return null;
     }
+
+    @Override
+    public boolean save(Subkelompok subkelompok) throws SQLException {
+        String sql = "INSERT INTO subkelompok (kategori_tingkat_id, nama) VALUES (?, ?)";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setInt(1, subkelompok.getKategoriTingkatId());
+            stmt.setString(2, subkelompok.getNama());
+            int affected = stmt.executeUpdate();
+            if (affected > 0) {
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    if (keys.next()) {
+                        subkelompok.setId(keys.getInt(1));
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean update(Subkelompok subkelompok) throws SQLException {
+        String sql = "UPDATE subkelompok SET nama = ? WHERE id = ?";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, subkelompok.getNama());
+            stmt.setInt(2, subkelompok.getId());
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    @Override
+    public boolean delete(int id) throws SQLException {
+        String sql = "DELETE FROM subkelompok WHERE id = ?";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    @Override
+    public int countAnggota(int subkelompokId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM anggota WHERE subkelompok_id = ?";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, subkelompokId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
+    @Override
+    public boolean existsByNamaInKategori(int kategoriId, String nama, Integer excludeId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM subkelompok WHERE kategori_tingkat_id = ? AND LOWER(nama) = LOWER(?)" +
+                     (excludeId != null ? " AND id <> ?" : "");
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, kategoriId);
+            stmt.setString(2, nama.trim());
+            if (excludeId != null) {
+                stmt.setInt(3, excludeId);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
 }

@@ -53,4 +53,80 @@ public class KategoriTingkatDaoImpl implements IKategoriTingkatDao {
         }
         return null;
     }
+
+    @Override
+    public boolean save(KategoriTingkat kategori) throws SQLException {
+        String sql = "INSERT INTO kategori_tingkat (nama, urutan) VALUES (?, ?)";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, kategori.getNama());
+            stmt.setInt(2, kategori.getUrutan());
+            int affected = stmt.executeUpdate();
+            if (affected > 0) {
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    if (keys.next()) {
+                        kategori.setId(keys.getInt(1));
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean update(KategoriTingkat kategori) throws SQLException {
+        String sql = "UPDATE kategori_tingkat SET nama = ?, urutan = ? WHERE id = ?";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, kategori.getNama());
+            stmt.setInt(2, kategori.getUrutan());
+            stmt.setInt(3, kategori.getId());
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    @Override
+    public boolean delete(int id) throws SQLException {
+        String sql = "DELETE FROM kategori_tingkat WHERE id = ?";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+    @Override
+    public int countAnggota(int kategoriId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM anggota WHERE kategori_tingkat_id = ?";
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, kategoriId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
+    @Override
+    public boolean existsByNama(String nama, Integer excludeId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM kategori_tingkat WHERE LOWER(nama) = LOWER(?)" +
+                     (excludeId != null ? " AND id <> ?" : "");
+        Connection conn = DatabaseConnection.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, nama.trim());
+            if (excludeId != null) {
+                stmt.setInt(2, excludeId);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
 }
