@@ -2,6 +2,9 @@ package com.pakem;
 
 import com.formdev.flatlaf.FlatLightLaf;
 import com.pakem.config.DatabaseConnection;
+import com.pakem.service.impl.AuthServiceImpl;
+import com.pakem.service.interfaces.IAuthService;
+import com.pakem.ui.MainFrame;
 
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -16,24 +19,27 @@ public class Main {
         try {
             UIManager.setLookAndFeel(new FlatLightLaf());
         } catch (Exception ex) {
-            System.err.println("Gagal menerapkan tema FlatLaf: " + ex.getMessage());
+            System.err.println("[Main] Gagal menerapkan tema FlatLaf: " + ex.getMessage());
         }
 
         System.out.println("==================================================");
         System.out.println("  Pakem - Sistem Administrasi Sanggar Seni Tabuh  ");
-        System.out.println("  Versi 1.0.0 (Java 25)");
+        System.out.println("  Versi 1.0.0 (Java 25 - Fase 1)");
         System.out.println("==================================================");
 
-        // Uji koneksi database awal
+        // Inisialisasi Service Layer & UI pada Swing Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(() -> {
-            System.out.println("[Init] Menguji koneksi database JDBC...");
             boolean dbConnected = DatabaseConnection.testConnection();
             if (dbConnected) {
-                System.out.println("[Init] Koneksi ke MySQL berhasil: " + DatabaseConnection.getJdbcUrl());
+                System.out.println("[Main] Database tersambung: " + DatabaseConnection.getJdbcUrl());
             } else {
-                System.out.println("[Init] Catatan: Database belum tersambung atau schema.sql belum dijalankan.");
-                System.out.println("[Init] Pastikan MySQL aktif dan database 'pakem_db' sudah dibuat.");
+                System.err.println("[Main] Peringatan: Tidak dapat terhubung ke database.");
+                System.err.println("[Main] Pastikan MySQL aktif dan file schema.sql telah dieksekusi.");
             }
+
+            IAuthService authService = new AuthServiceImpl();
+            MainFrame mainFrame = new MainFrame(authService);
+            mainFrame.setVisible(true);
         });
     }
 }
