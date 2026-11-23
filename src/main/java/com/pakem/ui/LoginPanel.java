@@ -8,6 +8,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
@@ -199,10 +200,13 @@ public class LoginPanel extends JPanel {
             if (loginListener != null) {
                 loginListener.onLoginSuccess(user);
             }
-        } catch (Exception ex) {
-            lblError.setText(ex.getMessage());
+        } catch (Throwable ex) {
+            String msg = ex.getMessage() != null ? ex.getMessage() : ex.toString();
+            lblError.setText(msg);
             txtPassword.setText("");
             txtPassword.requestFocusInWindow();
+            JOptionPane.showMessageDialog(this,
+                    "Login gagal: " + msg, "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
             btnLogin.setEnabled(true);
         }

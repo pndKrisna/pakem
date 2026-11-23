@@ -4,8 +4,8 @@ Dokumen ini mencatat riwayat pengerjaan bertahap, class penting yang telah dibua
 
 ---
 
-## 📌 Status Terakhir: Fase 3 Selesai (Kategori Tingkat, Subkelompok, & Auto-Grouping)
-- **Tanggal:** 22 November 2026
+## 📌 Status Terakhir: Fase 4 Selesai (Jadwal Latihan & Master Materi Tabuh)
+- **Tanggal:** 23 November 2026
 - **Status:** ✅ Selesai, Terintegrasi dengan Database MySQL, & Teruji 100%
 - **Target Platform:** Java 25, Apache Maven, FlatLaf, MySQL JDBC
 
@@ -132,15 +132,81 @@ mvn compile exec:java
 
 ---
 
-## ⏭️ Modul Berikutnya: Fase 4 (Jadwal Latihan & Master Materi Tabuh)
-1. **Model:** `MateriTabuh`, `JadwalLatihan`, `SesiMateri`, `enums.JenisJadwal` (`RUTIN`, `KHUSUS_EVENT`).
-2. **DAO Layer:**
-   - `IMateriTabuhDao` & `MateriTabuhDaoImpl` (CRUD gending/materi).
-   - `IJadwalLatihanDao` & `JadwalLatihanDaoImpl` (CRUD jadwal rutin per kategori/subkelompok dan jadwal insidental event).
-   - `ISesiMateriDao` & `SesiMateriDaoImpl` (pencatatan materi latihan per sesi beserta catatan progres).
-3. **Service Layer:** `ILatihanService` (pencarian riwayat progres materi terakhir kelompok untuk referensi pelatih).
+### 🔹 Fase 4 — Jadwal Latihan & Master Materi Tabuh (Selesai ✅)
+
+#### 1. Lapisan Model & Akses Data (DAO & Abstraction)
+- **Model & Enums:**
+  - `com.pakem.model.enums.JenisJadwal`: Enum `RUTIN` ("Latihan Rutin / Wajib") dan `KHUSUS_EVENT` ("Latihan Khusus Event").
+  - `com.pakem.model.MateriTabuh`: Model master repertoar/gending (id, nama, deskripsi).
+  - `com.pakem.model.JadwalLatihan`: Model jadwal latihan dengan helper field nama kategori, subkelompok, dan event.
+  - `com.pakem.model.SesiMateri`: Model pencatatan materi latihan per sesi beserta catatan progres.
+- **DAO Interfaces & Implementations:**
+  - `IMateriTabuhDao` & `MateriTabuhDaoImpl`: CRUD master gending/materi tabuh, validasi nama unik, dan penghitungan pemakaian di sesi latihan (`countDigunakanDiSesi`).
+  - `IJadwalLatihanDao` & `JadwalLatihanDaoImpl`: CRUD jadwal latihan, query berdasarkan filter kategori, subkelompok, dan tanggal latihan.
+  - `ISesiMateriDao` & `SesiMateriDaoImpl`: CRUD sesi materi per jadwal latihan, dan query catatan progres terakhir (`findProgresTerakhirByMateri`) berdasarkan urutan tanggal jadwal terbaru.
+
+#### 2. Lapisan Logika Bisnis (Service Layer)
+- **`com.pakem.service.interfaces.ILatihanService`** & **`LatihanServiceImpl`**:
+  - Mengelola CRUD Master Materi Tabuh dengan validasi nama unik dan pencegahan penghapusan jika materi sudah terikat sesi latihan.
+  - Mengelola CRUD Jadwal Latihan (Rutin maupun Khusus Event) dengan validasi tanggal dan jenis jadwal.
+  - Mengelola Sesi Materi Latihan (pencatatan materi yang dilatih per sesi beserta catatan progres).
+  - **Fitur Kontinuitas Progres Tabuh (`getProgresTerakhirByMateri`)**: Menyajikan catatan progres sesi latihan terakhir untuk materi tabuh yang dipilih, memungkinkan pelatih menyambung progres latihan sebelumnya tanpa kehilangan konteks.
+
+#### 3. Lapisan Antarmuka Pengguna (Swing + FlatLaf UI)
+- **`com.pakem.ui.latihan.MateriTabuhPanel`**:
+  - Tabel master materi/repertoar tabuh, tombol tambah, ubah, dan hapus dengan validasi pemakaian.
+- **`com.pakem.ui.latihan.MateriTabuhFormDialog`**:
+  - Modal form tambah/ubah materi gending dan deskripsinya.
+- **`com.pakem.ui.latihan.JadwalLatihanPanel`**:
+  - Filter interaktif berdasarkan Jenis Jadwal (Rutin/Khusus Event) dan Kategori Tingkat.
+  - Tabel daftar jadwal latihan terurut waktu pelaksanaan.
+  - Tombol aksi Tambah, Ubah, Hapus, dan tombol **"Lihat Sesi Materi"**.
+- **`com.pakem.ui.latihan.JadwalLatihanFormDialog`**:
+  - Form pembuatan/pengeditan jadwal latihan (tanggal, jam mulai/selesai dengan spinner time, lokasi, pemilihan kategori & subkelompok dinamis, catatan).
+- **`com.pakem.ui.latihan.SesiMateriDialog`**:
+  - Split-view modern: panel kiri menampilkan daftar materi tabuh di sesi ini, panel kanan menampilkan form input catatan progres baru dan kotak referensi **Catatan Progres Terakhir**.
+  - **Fitur "📋 Salin Pengumuman (WA)"**: Memformat secara otomatis teks pesan pengumuman jadwal latihan (hari, tanggal, jam, lokasi, kelompok, daftar materi gending beserta target progres) langsung ke sistem clipboard untuk dibagikan ke grup WhatsApp.
+- **Integrasi `MainFrame`**:
+  - Menu sidebar "Jadwal Latihan" dan "Materi Tabuh" telah terhubung penuh dan aktif.
+
+#### 4. Pengujian & Verifikasi
+- Pengujian otomatis pada `src/test/java/com/pakem/LatihanTest.java`:
+  - ✅ **Test 1:** Tambah materi tabuh baru berhasil.
+  - ✅ **Test 2:** Ubah deskripsi materi tabuh berhasil.
+  - ✅ **Test 3:** Pembuatan Jadwal Latihan Sesi 1 berhasil.
+  - ✅ **Test 4:** Pencatatan materi dan progres pada Sesi 1 berhasil.
+  - ✅ **Test 5:** Pembuatan Jadwal Latihan Sesi 2 berhasil.
+  - ✅ **Test 6:** Kontinuitas progres berhasil (catatan sesi 1 terbaca akurat saat persiapan sesi 2).
+  - ✅ **Test 7:** Pembaruan riwayat progres sesi 2 berhasil mengupdate referensi progres terbaru.
+  - ✅ **Test 8:** Pencegahan penghapusan materi yang terikat sesi latihan berhasil divalidasi.
+  - ✅ **Test 9:** Penghapusan jadwal dan pembersihan materi cascade berhasil.
+- Kompilasi Maven: **`mvn compile` BUILD SUCCESS** (0 error, 0 warning).
+
+---
+
+## 🚀 Cara Menjalankan Aplikasi untuk Pengujian Mandiri
+
+Jalankan antarmuka desktop aplikasi Pakem melalui terminal:
+
+```powershell
+mvn compile exec:java
+```
+
+**Skenario Pengujian Fase 4 yang Dapat Dicoba:**
+1. **Login sebagai Pengurus atau Pelatih:**
+   - Buka menu **Materi Tabuh** di sidebar untuk menambah/mengubah daftar gending (misal: *Tabuh Gilak*, *Gending Pengalang*).
+   - Buka menu **Jadwal Latihan**, klik **+ Tambah Jadwal** untuk membuat jadwal baru (pilih tanggal, jam, kategori, dan lokasi).
+   - Pilih jadwal yang baru dibuat, lalu klik **Lihat Sesi Materi**.
+   - Pada dialog sesi materi, pilih materi tabuh dan isi catatan progres (misal: *"Selesai bagian kawitan"*), lalu klik **+ Tambah ke Jadwal**.
+   - Klik tombol **📋 Salin Pengumuman (WA)**, lalu lakukan *Paste (Ctrl+V)* di teks editor atau WhatsApp untuk melihat format pengumuman yang rapi.
+   - Buat jadwal kedua dengan materi yang sama, amati kotak **Catatan Progres Terakhir** secara otomatis menampilkan catatan dari pertemuan sebelumnya.
+
+---
+
+## ⏭️ Modul Berikutnya: Fase 5 (Presensi Latihan)
+1. **Model:** `Presensi`, `enums.StatusHadir` (`HADIR`, `IZIN`, `SAKIT`, `TANPA_KETERANGAN`).
+2. **DAO Layer:** `IPresensiDao` & `PresensiDaoImpl` (pencatatan kehadiran anggota aktif per jadwal, rekap presensi per anggota/periode).
+3. **Service Layer:** `IPresensiService` & `PresensiServiceImpl` (isolasi: anggota vakum/nonaktif tidak muncul di daftar absensi baru, perhitungan persentase kehadiran).
 4. **UI Layer:**
-   - Panel jadwal latihan (kalender/daftar jadwal terurut waktu, filter jenis dan kategori).
-   - Dialog pembuatan/edit jadwal latihan.
-   - Dialog sesi materi latihan (menampilkan catatan progres sesi sebelumnya dan input catatan baru).
-   - Fitur **"Salin Pengumuman"** (format teks pesan WhatsApp ke clipboard).
+   - Panel presensi per jadwal latihan (tabel absensi cepat dengan radio button/combo status hadir).
+   - Panel rekapitulasi presensi (tabel statistik kehadiran anggota dengan persentase keaktifan).

@@ -4,11 +4,15 @@ import com.pakem.model.User;
 import com.pakem.model.enums.RoleUser;
 import com.pakem.service.impl.AnggotaServiceImpl;
 import com.pakem.service.impl.KategoriServiceImpl;
+import com.pakem.service.impl.LatihanServiceImpl;
 import com.pakem.service.interfaces.IAnggotaService;
 import com.pakem.service.interfaces.IAuthService;
 import com.pakem.service.interfaces.IKategoriService;
+import com.pakem.service.interfaces.ILatihanService;
 import com.pakem.ui.anggota.AnggotaListPanel;
 import com.pakem.ui.kategori.KategoriTingkatPanel;
+import com.pakem.ui.latihan.JadwalLatihanPanel;
+import com.pakem.ui.latihan.MateriTabuhPanel;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -45,6 +49,7 @@ public class MainFrame extends JFrame {
     private final IAuthService authService;
     private final IAnggotaService anggotaService;
     private final IKategoriService kategoriService;
+    private final ILatihanService latihanService;
     private final CardLayout mainCardLayout;
     private final JPanel mainContainer;
 
@@ -56,13 +61,15 @@ public class MainFrame extends JFrame {
     private final List<JButton> sidebarButtons = new ArrayList<>();
 
     public MainFrame(IAuthService authService) {
-        this(authService, new AnggotaServiceImpl(), new KategoriServiceImpl());
+        this(authService, new AnggotaServiceImpl(), new KategoriServiceImpl(), new LatihanServiceImpl());
     }
 
-    public MainFrame(IAuthService authService, IAnggotaService anggotaService, IKategoriService kategoriService) {
+    public MainFrame(IAuthService authService, IAnggotaService anggotaService,
+                     IKategoriService kategoriService, ILatihanService latihanService) {
         this.authService = authService;
         this.anggotaService = anggotaService;
         this.kategoriService = kategoriService;
+        this.latihanService = latihanService;
         this.mainCardLayout = new CardLayout();
         this.mainContainer = new JPanel(mainCardLayout);
 
@@ -91,8 +98,15 @@ public class MainFrame extends JFrame {
     }
 
     private void onLoginSuccess(User user) {
-        buildAppView(user);
-        mainCardLayout.show(mainContainer, CARD_APP);
+        try {
+            buildAppView(user);
+            mainCardLayout.show(mainContainer, CARD_APP);
+        } catch (Throwable ex) {
+            String msg = ex.getMessage() != null ? ex.getMessage() : ex.toString();
+            JOptionPane.showMessageDialog(this,
+                    "Gagal membuka aplikasi setelah login: " + msg, "Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
     }
 
     private void buildAppView(User user) {
@@ -120,10 +134,11 @@ public class MainFrame extends JFrame {
         // Modul Fase 3: Master Kategori Tingkat & Subkelompok
         contentArea.add(new KategoriTingkatPanel(kategoriService, user), "NAV_KATEGORI");
 
-        // Tambah Halaman Placeholder untuk modul-modul fase selanjutnya
+        // Modul Fase 4: Jadwal Latihan & Master Materi Tabuh
+        contentArea.add(new JadwalLatihanPanel(latihanService, kategoriService, user), "NAV_LATIHAN");
+        contentArea.add(new MateriTabuhPanel(latihanService, user), "NAV_MATERI");
 
-        contentArea.add(createPlaceholderPanel("Jadwal Latihan & Materi Tabuh", "Fase 4",
-                "Hak Akses: Penuh (Buat Jadwal, Sambung Progres Materi Tabuh, Salin WA)"), "NAV_LATIHAN");
+        // Tambah Halaman Placeholder untuk modul-modul fase selanjutnya
 
         contentArea.add(createPlaceholderPanel("Presensi Latihan", "Fase 5",
                 "Hak Akses: Penuh (Pencatatan Kehadiran & Rekap Persentase Anggota Aktif)"), "NAV_PRESENSI");
@@ -232,6 +247,7 @@ public class MainFrame extends JFrame {
         addSidebarButton(sidebar, "Data Anggota", "NAV_ANGGOTA");
         addSidebarButton(sidebar, "Kategori & Kelompok", "NAV_KATEGORI");
         addSidebarButton(sidebar, "Jadwal Latihan", "NAV_LATIHAN");
+        addSidebarButton(sidebar, "Materi Tabuh", "NAV_MATERI");
         addSidebarButton(sidebar, "Presensi Latihan", "NAV_PRESENSI");
         addSidebarButton(sidebar, "Pertunjukan / Event", "NAV_EVENT");
 
