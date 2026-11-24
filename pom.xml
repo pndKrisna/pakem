@@ -19,6 +19,7 @@
         <maven.compiler.release>25</maven.compiler.release>
         <flatlaf.version>3.5.4</flatlaf.version>
         <mysql.version>8.3.0</mysql.version>
+        <exec.mainClass>com.pakem.Main</exec.mainClass>
     </properties>
 
     <dependencies>
@@ -55,7 +56,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
-                    <mainClass>com.pakem.Main</mainClass>
+                    <mainClass>${exec.mainClass}</mainClass>
                 </configuration>
             </plugin>
         </plugins>

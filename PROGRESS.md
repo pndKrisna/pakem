@@ -4,8 +4,8 @@ Dokumen ini mencatat riwayat pengerjaan bertahap, class penting yang telah dibua
 
 ---
 
-## 📌 Status Terakhir: Fase 4 Selesai (Jadwal Latihan & Master Materi Tabuh)
-- **Tanggal:** 23 November 2026
+## 📌 Status Terakhir: Fase 5 Selesai (Presensi Latihan & Rekapitulasi Kehadiran)
+- **Tanggal:** 24 November 2026
 - **Status:** ✅ Selesai, Terintegrasi dengan Database MySQL, & Teruji 100%
 - **Target Platform:** Java 25, Apache Maven, FlatLaf, MySQL JDBC
 
@@ -203,10 +203,95 @@ mvn compile exec:java
 
 ---
 
-## ⏭️ Modul Berikutnya: Fase 5 (Presensi Latihan)
-1. **Model:** `Presensi`, `enums.StatusHadir` (`HADIR`, `IZIN`, `SAKIT`, `TANPA_KETERANGAN`).
-2. **DAO Layer:** `IPresensiDao` & `PresensiDaoImpl` (pencatatan kehadiran anggota aktif per jadwal, rekap presensi per anggota/periode).
-3. **Service Layer:** `IPresensiService` & `PresensiServiceImpl` (isolasi: anggota vakum/nonaktif tidak muncul di daftar absensi baru, perhitungan persentase kehadiran).
+---
+
+### 🔹 Fase 5 — Presensi Latihan & Rekapitulasi Kehadiran (Selesai ✅)
+
+#### 1. Lapisan Model & Akses Data (DAO & Abstraction)
+- **Model & Enums:**
+  - `com.pakem.model.enums.StatusHadir`: Enum status kehadiran (`HADIR`, `IZIN`, `SAKIT`, `TANPA_KETERANGAN`).
+  - `com.pakem.model.Presensi`: Model entitas presensi (id, jadwal_latihan_id, anggota_id, status_hadir, keterangan, serta field join nama, kontak, dan kategori/subkelompok).
+  - `com.pakem.model.RekapPresensi`: Model DTO statistik kehadiran per anggota (total pertemuan, jumlah hadir, izin, sakit, alpa, serta persentase kehadiran terhitung).
+- **DAO Interfaces & Implementations:**
+  - `IPresensiDao` & `PresensiDaoImpl`:
+    - `findByJadwalId(jadwalId)`: Mengambil daftar presensi per jadwal latihan terurut nama anggota.
+    - `findByJadwalAndAnggota(jadwalId, anggotaId)`: Mengambil status presensi spesifik seorang anggota.
+    - `save(presensi)`, `update(presensi)`, `saveOrUpdate(presensi)`: Operasi persistensi dengan dukungan klausa SQL `ON DUPLICATE KEY UPDATE` untuk menjaga integritas constraint `uq_presensi_jadwal_anggota`.
+    - `saveBatch(presensiList)`: Penyimpanan lembar presensi banyak anggota dalam 1 transaksi atomik (`setAutoCommit(false)`).
+    - `countByJadwalAndStatus(jadwalId, status)` & `countTotalByJadwal(jadwalId)`: Ringkasan cepat kehadiran sesi latihan.
+    - `getRekapitulasi(kategoriId, subkelompokId, dariTanggal, sampaiTanggal)`: Agregasi query SQL multi-tabel (`anggota`, `kategori_tingkat`, `subkelompok`, `presensi`, `jadwal_latihan`) untuk menghitung total sesi, hadir, izin, sakit, alpa, dan tingkat keaktifan.
+    - `delete(id)` & `deleteByJadwalId(jadwalId)`: Operasi penghapusan data presensi.
+
+#### 2. Lapisan Logika Bisnis (Service Layer)
+- **`com.pakem.service.interfaces.IPresensiService`** & **`PresensiServiceImpl`**:
+  - `getLembarPresensiJadwal(jadwalId)`:
+    - **Isolasi Status Teruji:** Hanya anggota aktif (`StatusAnggota.AKTIF`) yang dimasukkan ke lembar presensi. Anggota dengan status `VAKUM` (cuti) atau `NONAKTIF` (keluar) secara otomatis disaring keluar dari lembar kehadiran baru.
+    - **Penyaringan Berdasarkan Target Jadwal:** Menyesuaikan peserta apakah jadwal ditujukan untuk subkelompok tertentu, kategori tingkat tertentu, atau seluruh anggota sanggar.
+    - **Sinkronisasi Record Tersimpan:** Menggabungkan record presensi yang sudah tersimpan di database dengan anggota aktif yang berlaku (default status `HADIR` untuk entri baru).
+  - `simpanDaftarPresensi(daftarPresensi)`: Menyimpan hasil absensi sesi secara batch dan atomik.
+  - `simpanPresensi(presensi)`: Menyimpan/mengubah presensi per anggota secara individual.
+  - `getRingkasanPresensiJadwal(jadwalId)`: Mengembalikan peta ringkasan kehadiran (TOTAL, HADIR, IZIN, SAKIT, ALPA) untuk visualisasi cepat.
+  - `getRekapitulasi(kategoriId, subkelompokId, dariTanggal, sampaiTanggal)`: Mengembalikan data statistik keaktifan anggota aktif sanggar.
+
+#### 3. Lapisan Antarmuka Pengguna (Swing + FlatLaf UI)
+- **`com.pakem.ui.presensi.PresensiPanel`**:
+  - Selector jadwal latihan interaktif dengan tampilan ringkas (tanggal, jam, lokasi, target kelompok).
+  - Tabel entri presensi per sesi dengan:
+    - Kolom No, ID Anggota, Nama Anggota, Kategori, Subkelompok, Status Kehadiran (ComboBox editor/renderer dengan warna khusus), dan Keterangan.
+  - **Fitur Percepat Absensi:** Tombol **"✅ Set Semua Hadir"** untuk mengisi seluruh baris menjadi hadir dalam satu klik sebelum pelatih menandai anggota yang izin/sakit/alpa.
+  - Tombol **"💾 Simpan Presensi"** untuk menyimpan seluruh lembar kehadiran sekaligus.
+  - Baris indikator ringkasan di bagian bawah: Total Peserta, Hadir (hijau), Izin (biru), Sakit (kuning), Alpa (merah) yang terupdate secara *live*.
+- **`com.pakem.ui.presensi.RekapPresensiPanel`**:
+  - Filter Kategori Tingkat, Subkelompok (dinamis), dan Rentang Tanggal (Dari - Sampai).
+  - Tabel rekapitulasi keaktifan anggota dengan visual badge persentase (Hijau `>= 80%`, Kuning `50-79%`, Merah `< 50%`).
+  - **Fitur "📋 Salin Rekap Teks"**: Menyalin ringkasan persentase keaktifan seluruh anggota ke sistem clipboard untuk laporan evaluasi atau dibagikan ke pengurus.
+- **`com.pakem.ui.presensi.PresensiMainPanel`**:
+  - Kontainer tabbed view modern FlatLaf yang menyatukan panel pencatatan presensi dan rekapitulasi kehadiran dengan auto-refresh saat tab berpindah.
+- **Integrasi `MainFrame`**:
+  - Menu sidebar "Presensi Latihan" kini langsung membuka `PresensiMainPanel` yang aktif dan terintegrasi penuh.
+
+#### 4. Pengujian & Verifikasi
+- Pengujian otomatis pada `src/test/java/com/pakem/PresensiTest.java` langsung ke database MySQL:
+  - ✅ **Test 1:** Setup data master kategori, subkelompok, dan anggota uji (Aktif, Vakum, Nonaktif) berhasil.
+  - ✅ **Test 2:** Isolasi status anggota teruji 100% (anggota Vakum dan Nonaktif otomatis diabaikan, hanya anggota Aktif yang muncul).
+  - ✅ **Test 3:** Simpan presensi batch (multi-status: Hadir, Izin) berhasil disimpan dan terbaca akurat.
+  - ✅ **Test 4:** Perhitungan ringkasan statistik sesi presensi akurat (Total, Hadir, Izin, Sakit, Alpa).
+  - ✅ **Test 5:** Pembaruan status presensi berhasil (perubahan Izin -> Sakit).
+  - ✅ **Test 6:** Akumulasi rekapitulasi lintas sesi & akurasi persentase keaktifan teruji valid (100% vs 0%).
+  - ✅ **Test 7:** Cascade delete presensi pada penghapusan jadwal latihan teruji bersih.
+  - ✅ **Test 8:** Pembersihan data uji selesai.
+- Pengujian regresi modul sebelumnya: `LatihanTest` (9/9 PASS), `KategoriTest` (9/9 PASS), `AuthTest` (4/4 PASS).
+- Kompilasi Maven: **`mvn clean test-compile` BUILD SUCCESS** (0 error, 0 warning).
+
+---
+
+## 🚀 Cara Menjalankan Aplikasi untuk Pengujian Mandiri
+
+Jalankan antarmuka desktop aplikasi Pakem melalui terminal:
+
+```powershell
+mvn compile exec:java
+```
+
+**Skenario Pengujian Fase 5 yang Dapat Dicoba:**
+1. **Login sebagai Pengurus atau Pelatih:**
+   - Buka menu **Presensi Latihan** di sidebar.
+   - Pada tab **"📝 Catat Presensi Sesi"**, pilih salah satu sesi jadwal latihan di dropdown atas.
+   - Amati daftar peserta hanya menampilkan anggota yang berstatus **Aktif**.
+   - Klik tombol **"✅ Set Semua Hadir"** untuk menandai semua anggota hadir seketika.
+   - Ubah salah satu anggota menjadi **Izin** atau **Sakit** dan ketik catatan pada kolom keterangan (misal: *"Izin ada acara keluarga"*).
+   - Klik **"💾 Simpan Presensi"** dan perhatikan ringkasan kehadiran di bar bawah (Hadir, Izin, Sakit, Alpa) berubah secara akurat.
+   - Berpindah ke tab **"📊 Rekapitulasi Kehadiran"**, klik **"Terapkan Filter"** untuk melihat statistik kehadiran dan badge persentase keaktifan anggota.
+   - Klik **"📋 Salin Rekap Teks"** lalu lakukan *Paste (Ctrl+V)* di Notepad atau WhatsApp untuk melihat hasil laporan evaluasi kehadiran yang rapi.
+
+---
+
+## ⏭️ Modul Berikutnya: Fase 6 (Pertunjukan / Event)
+1. **Model:** `Event`, `TimEvent`, `PemainTim`, `enums.JenisAcara` (`JOB`, `NGAYAH`, `UJIAN`), `enums.StatusKesediaan` (`BELUM_DITANYA`, `BERSEDIA`, `TIDAK_BERSEDIA`), `enums.StatusHonor` (`BELUM_DIBAGIKAN`, `SUDAH_DIBAGIKAN`).
+2. **DAO Layer:** `IEventDao`, `ITimEventDao`, `IPemainTimDao` & implementasinya (CRUD acara pertunjukan, manajemen tim acara, susunan pemain lintas tingkat).
+3. **Service Layer:** `IEventService` & `EventServiceImpl` (pengelolaan multi-tim per acara, pencatatan kesediaan pemain, isolasi kolom honor khusus acara JOB dan hak akses peran pengurus).
 4. **UI Layer:**
-   - Panel presensi per jadwal latihan (tabel absensi cepat dengan radio button/combo status hadir).
-   - Panel rekapitulasi presensi (tabel statistik kehadiran anggota dengan persentase keaktifan).
+   - `EventListPanel` & `EventFormDialog` (tabel daftar acara pertunjukan, tambah/ubah event).
+   - `TimEventPanel` & `PemainTimDialog` (manajemen multi-tim, pemanggilan pemain dari anggota aktif, konfirmasi kesediaan).
+   - Panel pencatatan honor job (hanya tampil untuk pengurus pada event berjenis JOB).
+   - Fitur "Salin Info Acara & Susunan Pemain" ke clipboard (WhatsApp format).

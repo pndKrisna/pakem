@@ -5,14 +5,17 @@ import com.pakem.model.enums.RoleUser;
 import com.pakem.service.impl.AnggotaServiceImpl;
 import com.pakem.service.impl.KategoriServiceImpl;
 import com.pakem.service.impl.LatihanServiceImpl;
+import com.pakem.service.impl.PresensiServiceImpl;
 import com.pakem.service.interfaces.IAnggotaService;
 import com.pakem.service.interfaces.IAuthService;
 import com.pakem.service.interfaces.IKategoriService;
 import com.pakem.service.interfaces.ILatihanService;
+import com.pakem.service.interfaces.IPresensiService;
 import com.pakem.ui.anggota.AnggotaListPanel;
 import com.pakem.ui.kategori.KategoriTingkatPanel;
 import com.pakem.ui.latihan.JadwalLatihanPanel;
 import com.pakem.ui.latihan.MateriTabuhPanel;
+import com.pakem.ui.presensi.PresensiMainPanel;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -50,6 +53,7 @@ public class MainFrame extends JFrame {
     private final IAnggotaService anggotaService;
     private final IKategoriService kategoriService;
     private final ILatihanService latihanService;
+    private final IPresensiService presensiService;
     private final CardLayout mainCardLayout;
     private final JPanel mainContainer;
 
@@ -61,15 +65,22 @@ public class MainFrame extends JFrame {
     private final List<JButton> sidebarButtons = new ArrayList<>();
 
     public MainFrame(IAuthService authService) {
-        this(authService, new AnggotaServiceImpl(), new KategoriServiceImpl(), new LatihanServiceImpl());
+        this(authService, new AnggotaServiceImpl(), new KategoriServiceImpl(), new LatihanServiceImpl(), new PresensiServiceImpl());
     }
 
     public MainFrame(IAuthService authService, IAnggotaService anggotaService,
                      IKategoriService kategoriService, ILatihanService latihanService) {
+        this(authService, anggotaService, kategoriService, latihanService, new PresensiServiceImpl());
+    }
+
+    public MainFrame(IAuthService authService, IAnggotaService anggotaService,
+                     IKategoriService kategoriService, ILatihanService latihanService,
+                     IPresensiService presensiService) {
         this.authService = authService;
         this.anggotaService = anggotaService;
         this.kategoriService = kategoriService;
         this.latihanService = latihanService;
+        this.presensiService = presensiService;
         this.mainCardLayout = new CardLayout();
         this.mainContainer = new JPanel(mainCardLayout);
 
@@ -138,10 +149,10 @@ public class MainFrame extends JFrame {
         contentArea.add(new JadwalLatihanPanel(latihanService, kategoriService, user), "NAV_LATIHAN");
         contentArea.add(new MateriTabuhPanel(latihanService, user), "NAV_MATERI");
 
-        // Tambah Halaman Placeholder untuk modul-modul fase selanjutnya
+        // Modul Fase 5: Presensi Latihan & Rekapitulasi Kehadiran
+        contentArea.add(new PresensiMainPanel(presensiService, latihanService, kategoriService, user), "NAV_PRESENSI");
 
-        contentArea.add(createPlaceholderPanel("Presensi Latihan", "Fase 5",
-                "Hak Akses: Penuh (Pencatatan Kehadiran & Rekap Persentase Anggota Aktif)"), "NAV_PRESENSI");
+        // Tambah Halaman Placeholder untuk modul-modul fase selanjutnya
 
         contentArea.add(createPlaceholderPanel("Pertunjukan / Event", "Fase 6",
                 user.canAccessHonor() ? "Hak Akses: Penuh (Kelola Tim Lintas Tingkat, Kesediaan, & Pencatatan Honor Job)"
