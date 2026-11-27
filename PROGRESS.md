@@ -4,7 +4,7 @@ Dokumen ini mencatat riwayat pengerjaan bertahap, class penting yang telah dibua
 
 ---
 
-## 📌 Status Terakhir: Fase 5 Selesai (Presensi Latihan & Rekapitulasi Kehadiran)
+## 📌 Status Terakhir: Fase 6 Selesai (Pertunjukan / Event)
 - **Tanggal:** 24 November 2026
 - **Status:** ✅ Selesai, Terintegrasi dengan Database MySQL, & Teruji 100%
 - **Target Platform:** Java 25, Apache Maven, FlatLaf, MySQL JDBC
@@ -286,12 +286,57 @@ mvn compile exec:java
 
 ---
 
-## ⏭️ Modul Berikutnya: Fase 6 (Pertunjukan / Event)
-1. **Model:** `Event`, `TimEvent`, `PemainTim`, `enums.JenisAcara` (`JOB`, `NGAYAH`, `UJIAN`), `enums.StatusKesediaan` (`BELUM_DITANYA`, `BERSEDIA`, `TIDAK_BERSEDIA`), `enums.StatusHonor` (`BELUM_DIBAGIKAN`, `SUDAH_DIBAGIKAN`).
-2. **DAO Layer:** `IEventDao`, `ITimEventDao`, `IPemainTimDao` & implementasinya (CRUD acara pertunjukan, manajemen tim acara, susunan pemain lintas tingkat).
-3. **Service Layer:** `IEventService` & `EventServiceImpl` (pengelolaan multi-tim per acara, pencatatan kesediaan pemain, isolasi kolom honor khusus acara JOB dan hak akses peran pengurus).
-4. **UI Layer:**
-   - `EventListPanel` & `EventFormDialog` (tabel daftar acara pertunjukan, tambah/ubah event).
-   - `TimEventPanel` & `PemainTimDialog` (manajemen multi-tim, pemanggilan pemain dari anggota aktif, konfirmasi kesediaan).
-   - Panel pencatatan honor job (hanya tampil untuk pengurus pada event berjenis JOB).
-   - Fitur "Salin Info Acara & Susunan Pemain" ke clipboard (WhatsApp format).
+---
+
+### 🔹 Fase 6 — Pertunjukan / Event (Selesai ✅)
+
+#### 1. Lapisan Model & Enums
+- **Enums:**
+  - `com.pakem.model.enums.JenisAcara`: `JOB` ("Pentas / Job"), `NGAYAH` ("Ngayah"), `UJIAN` ("Ujian Kenaikan Tingkat").
+  - `com.pakem.model.enums.StatusKesediaan`: `BELUM_DITANYA`, `BERSEDIA`, `TIDAK_BERSEDIA`.
+  - `com.pakem.model.enums.StatusHonor`: `BELUM_DIBAGIKAN`, `SUDAH_DIBAGIKAN`.
+- **Model Entitas:**
+  - `com.pakem.model.Event`: id, nama_acara, jenis_acara, tanggal, waktu, lokasi, catatan, plus helper jumlahTim & totalPemain.
+  - `com.pakem.model.TimEvent`: id, event_id, nama_tim, catatan, plus helper namaEvent & jumlahPemain.
+  - `com.pakem.model.PemainTim`: id, tim_event_id, anggota_id, status_kesediaan, nominal_honor, status_honor, plus helper join nama/kontak/kategori/subkelompok/tim/acara/jenis_acara.
+
+#### 2. Lapisan Akses Data (DAO)
+- **`IEventDao` & `EventDaoImpl`:** `findAll` (filter jenis, tanggal, kata kunci), `findById`, `save`, `update`, `delete`, `countTim`, `countPemain`. Semua kolom 100% cocok dengan `schema.sql` tabel `event`.
+- **`ITimEventDao` & `TimEventDaoImpl`:** `findByEventId`, `findById`, `save`, `update`, `delete`, `countPemain`, `existsByNamaInEvent` (validasi nama unik per event).
+- **`IPemainTimDao` & `PemainTimDaoImpl`:** `findByTimId`, `findByEventId`, `findById`, `findByTimAndAnggota`, `save`, `update`, `updateKesediaan`, `updateHonor`, `delete`, `deleteByTimId`, `existsByTimAndAnggota`, `countByKesediaan`.
+
+#### 3. Lapisan Logika Bisnis (Service Layer)
+- **`IEventService` & `EventServiceImpl`:**
+  - CRUD Event & Tim Event (Multi-Tim).
+  - Validasi: nama acara wajib diisi; tanggal acara wajib diisi; nama tim harus unik per event.
+  - `simpanEvent` secara otomatis membuat 1 tim default ("Tim Utama") agar acara siap diisi pemain.
+  - **Pemain Tim & Isolasi Status:** `tambahPemain` hanya menerima anggota berstatus `AKTIF`; anggota `VAKUM` dan `NONAKTIF` secara otomatis ditolak. Mendukung pemilihan pemain lintas tingkat (cross-category).
+  - **Pembatasan Akses Honor:** `ubahHonorPemain` hanya dapat dipanggil oleh pengguna dengan `canAccessHonor() == true` (Pengurus) dan hanya berlaku jika event berjenis `JOB`. Kolom honor disembunyikan untuk acara `NGAYAH` dan `UJIAN` serta untuk peran Pelatih.
+  - `getCalonPemainTersedia(timEventId)`: Mengambil anggota aktif yang belum terdaftar di tim tersebut.
+  - `formatPengumumanEvent(int eventId)`: Menghasilkan teks WhatsApp rapi dengan rincian acara, daftar tim, dan daftar pemain beserta status kesediaan.
+
+#### 4. Lapisan Antarmuka Pengguna (Swing + FlatLaf UI)
+- **`com.pakem.ui.event.EventListPanel`:** Tabel daftar acara dengan filter Jenis Acara, pencarian kata kunci, rentang tanggal. Tombol Tambah/Ubah/Hapus Acara (terbatas untuk `canManageEvent()`), Kelola Tim & Pemain, dan Salin WA. Double-click baris membuka manajemen tim.
+- **`com.pakem.ui.event.EventFormDialog`:** Form tambah/ubah acara (nama, jenis acara, tanggal, waktu, lokasi, catatan).
+- **`com.pakem.ui.event.TimEventDialog`:** Manajemen multi-tim dan susunan pemain. Tabel pemain menampilkan kolom Honor & Status Honor **hanya jika** `event.getJenisAcara() == JenisAcara.JOB` **dan** `currentUser.canAccessHonor() == true`. Aksi: tambah pemain, ubah kesediaan, atur honor (khusus Pengurus di JOB), hapus pemain, dan "📋 Salin Info Acara & Pemain (WA)".
+- **`com.pakem.ui.event.PilihPemainDialog`:** Dialog pemilihan anggota aktif lintas tingkat dengan filter kategori tingkat dan input status kesediaan serta nominal honor.
+- **Integrasi `MainFrame`:** Menu sidebar "Pertunjukan / Event" kini membuka `EventListPanel` yang aktif dan terintegrasi penuh.
+
+#### 5. Pengujian & Verifikasi
+- Pengujian otomatis pada `src/test/java/com/pakem/EventTest.java` langsung ke database MySQL:
+  - ✅ **Test 1:** Setup data master & anggota berhasil.
+  - ✅ **Test 2:** CRUD Event (Simpan, Ubah, Baca) berhasil.
+  - ✅ **Test 3:** Multi-Tim Event berhasil (2 tim, termasuk default Tim Utama).
+  - ✅ **Test 4:** Pemain lintas tingkat + isolasi status anggota (Vakum & Nonaktif ditolak).
+  - ✅ **Test 5:** Pembatasan akses honor (Pengurus BISA, Pelatih DITOLAK).
+  - ✅ **Test 6:** Hapus Event dengan cascade delete Tim & Pemain berhasil.
+  - ✅ **Test 7:** Pembersihan data uji selesai.
+- Kompilasi Maven: **`mvn clean test-compile` BUILD SUCCESS** (0 error).
+
+---
+
+## ⏭️ Modul Berikutnya: Fase 7 (Iuran Bulanan)
+1. **DAO:** `IIuranDao` + impl.
+2. **Service:** `IIuranService` + impl (hitung status warna berdasarkan settings: Hijau/Kuning/Merah).
+3. **UI:** `IuranPanel` (pilih bulan/tahun → daftar anggota Aktif + warna indikator + catat bayar).
+4. **Aturan:** Daftar tagihan hanya anggota Aktif (Vakum dan Nonaktif diabaikan); warna indikator berubah dinamis sesuai tanggal dan pengaturan.

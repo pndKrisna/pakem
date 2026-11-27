@@ -3,15 +3,18 @@ package com.pakem.ui;
 import com.pakem.model.User;
 import com.pakem.model.enums.RoleUser;
 import com.pakem.service.impl.AnggotaServiceImpl;
+import com.pakem.service.impl.EventServiceImpl;
 import com.pakem.service.impl.KategoriServiceImpl;
 import com.pakem.service.impl.LatihanServiceImpl;
 import com.pakem.service.impl.PresensiServiceImpl;
 import com.pakem.service.interfaces.IAnggotaService;
 import com.pakem.service.interfaces.IAuthService;
+import com.pakem.service.interfaces.IEventService;
 import com.pakem.service.interfaces.IKategoriService;
 import com.pakem.service.interfaces.ILatihanService;
 import com.pakem.service.interfaces.IPresensiService;
 import com.pakem.ui.anggota.AnggotaListPanel;
+import com.pakem.ui.event.EventListPanel;
 import com.pakem.ui.kategori.KategoriTingkatPanel;
 import com.pakem.ui.latihan.JadwalLatihanPanel;
 import com.pakem.ui.latihan.MateriTabuhPanel;
@@ -54,6 +57,7 @@ public class MainFrame extends JFrame {
     private final IKategoriService kategoriService;
     private final ILatihanService latihanService;
     private final IPresensiService presensiService;
+    private final IEventService eventService;
     private final CardLayout mainCardLayout;
     private final JPanel mainContainer;
 
@@ -65,22 +69,29 @@ public class MainFrame extends JFrame {
     private final List<JButton> sidebarButtons = new ArrayList<>();
 
     public MainFrame(IAuthService authService) {
-        this(authService, new AnggotaServiceImpl(), new KategoriServiceImpl(), new LatihanServiceImpl(), new PresensiServiceImpl());
+        this(authService, new AnggotaServiceImpl(), new KategoriServiceImpl(), new LatihanServiceImpl(), new PresensiServiceImpl(), new EventServiceImpl());
     }
 
     public MainFrame(IAuthService authService, IAnggotaService anggotaService,
                      IKategoriService kategoriService, ILatihanService latihanService) {
-        this(authService, anggotaService, kategoriService, latihanService, new PresensiServiceImpl());
+        this(authService, anggotaService, kategoriService, latihanService, new PresensiServiceImpl(), new EventServiceImpl());
     }
 
     public MainFrame(IAuthService authService, IAnggotaService anggotaService,
                      IKategoriService kategoriService, ILatihanService latihanService,
                      IPresensiService presensiService) {
+        this(authService, anggotaService, kategoriService, latihanService, presensiService, new EventServiceImpl());
+    }
+
+    public MainFrame(IAuthService authService, IAnggotaService anggotaService,
+                     IKategoriService kategoriService, ILatihanService latihanService,
+                     IPresensiService presensiService, IEventService eventService) {
         this.authService = authService;
         this.anggotaService = anggotaService;
         this.kategoriService = kategoriService;
         this.latihanService = latihanService;
         this.presensiService = presensiService;
+        this.eventService = eventService;
         this.mainCardLayout = new CardLayout();
         this.mainContainer = new JPanel(mainCardLayout);
 
@@ -152,11 +163,10 @@ public class MainFrame extends JFrame {
         // Modul Fase 5: Presensi Latihan & Rekapitulasi Kehadiran
         contentArea.add(new PresensiMainPanel(presensiService, latihanService, kategoriService, user), "NAV_PRESENSI");
 
-        // Tambah Halaman Placeholder untuk modul-modul fase selanjutnya
+        // Modul Fase 6: Pertunjukan / Event (Multi-Tim, Susunan Pemain, Kesediaan, & Honor)
+        contentArea.add(new EventListPanel(eventService, kategoriService, user), "NAV_EVENT");
 
-        contentArea.add(createPlaceholderPanel("Pertunjukan / Event", "Fase 6",
-                user.canAccessHonor() ? "Hak Akses: Penuh (Kelola Tim Lintas Tingkat, Kesediaan, & Pencatatan Honor Job)"
-                                     : "Hak Akses: Terbatas (Lihat Acara & Catat Kesediaan Pemain)"), "NAV_EVENT");
+        // Tambah Halaman Placeholder untuk modul-modul fase selanjutnya
 
         if (user.canAccessIuran()) {
             contentArea.add(createPlaceholderPanel("Iuran Bulanan", "Fase 7",
