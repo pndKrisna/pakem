@@ -4,17 +4,20 @@ import com.pakem.model.User;
 import com.pakem.model.enums.RoleUser;
 import com.pakem.service.impl.AnggotaServiceImpl;
 import com.pakem.service.impl.EventServiceImpl;
+import com.pakem.service.impl.IuranServiceImpl;
 import com.pakem.service.impl.KategoriServiceImpl;
 import com.pakem.service.impl.LatihanServiceImpl;
 import com.pakem.service.impl.PresensiServiceImpl;
 import com.pakem.service.interfaces.IAnggotaService;
 import com.pakem.service.interfaces.IAuthService;
 import com.pakem.service.interfaces.IEventService;
+import com.pakem.service.interfaces.IIuranService;
 import com.pakem.service.interfaces.IKategoriService;
 import com.pakem.service.interfaces.ILatihanService;
 import com.pakem.service.interfaces.IPresensiService;
 import com.pakem.ui.anggota.AnggotaListPanel;
 import com.pakem.ui.event.EventListPanel;
+import com.pakem.ui.iuran.IuranPanel;
 import com.pakem.ui.kategori.KategoriTingkatPanel;
 import com.pakem.ui.latihan.JadwalLatihanPanel;
 import com.pakem.ui.latihan.MateriTabuhPanel;
@@ -58,6 +61,7 @@ public class MainFrame extends JFrame {
     private final ILatihanService latihanService;
     private final IPresensiService presensiService;
     private final IEventService eventService;
+    private final IIuranService iuranService;
     private final CardLayout mainCardLayout;
     private final JPanel mainContainer;
 
@@ -69,29 +73,37 @@ public class MainFrame extends JFrame {
     private final List<JButton> sidebarButtons = new ArrayList<>();
 
     public MainFrame(IAuthService authService) {
-        this(authService, new AnggotaServiceImpl(), new KategoriServiceImpl(), new LatihanServiceImpl(), new PresensiServiceImpl(), new EventServiceImpl());
+        this(authService, new AnggotaServiceImpl(), new KategoriServiceImpl(), new LatihanServiceImpl(), new PresensiServiceImpl(), new EventServiceImpl(), new IuranServiceImpl());
     }
 
     public MainFrame(IAuthService authService, IAnggotaService anggotaService,
                      IKategoriService kategoriService, ILatihanService latihanService) {
-        this(authService, anggotaService, kategoriService, latihanService, new PresensiServiceImpl(), new EventServiceImpl());
+        this(authService, anggotaService, kategoriService, latihanService, new PresensiServiceImpl(), new EventServiceImpl(), new IuranServiceImpl());
     }
 
     public MainFrame(IAuthService authService, IAnggotaService anggotaService,
                      IKategoriService kategoriService, ILatihanService latihanService,
                      IPresensiService presensiService) {
-        this(authService, anggotaService, kategoriService, latihanService, presensiService, new EventServiceImpl());
+        this(authService, anggotaService, kategoriService, latihanService, presensiService, new EventServiceImpl(), new IuranServiceImpl());
     }
 
     public MainFrame(IAuthService authService, IAnggotaService anggotaService,
                      IKategoriService kategoriService, ILatihanService latihanService,
                      IPresensiService presensiService, IEventService eventService) {
+        this(authService, anggotaService, kategoriService, latihanService, presensiService, eventService, new IuranServiceImpl());
+    }
+
+    public MainFrame(IAuthService authService, IAnggotaService anggotaService,
+                     IKategoriService kategoriService, ILatihanService latihanService,
+                     IPresensiService presensiService, IEventService eventService,
+                     IIuranService iuranService) {
         this.authService = authService;
         this.anggotaService = anggotaService;
         this.kategoriService = kategoriService;
         this.latihanService = latihanService;
         this.presensiService = presensiService;
         this.eventService = eventService;
+        this.iuranService = iuranService;
         this.mainCardLayout = new CardLayout();
         this.mainContainer = new JPanel(mainCardLayout);
 
@@ -166,11 +178,9 @@ public class MainFrame extends JFrame {
         // Modul Fase 6: Pertunjukan / Event (Multi-Tim, Susunan Pemain, Kesediaan, & Honor)
         contentArea.add(new EventListPanel(eventService, kategoriService, user), "NAV_EVENT");
 
-        // Tambah Halaman Placeholder untuk modul-modul fase selanjutnya
-
+        // Modul Fase 7: Iuran Bulanan (Indikator Warna & Pencatatan Bayar)
         if (user.canAccessIuran()) {
-            contentArea.add(createPlaceholderPanel("Iuran Bulanan", "Fase 7",
-                    "Hak Akses: Penuh (Pemantauan Status Indikator Warna Tagihan & Pencatatan Bayar)"), "NAV_IURAN");
+            contentArea.add(new IuranPanel(iuranService, user), "NAV_IURAN");
         }
 
         if (user.canAccessPengaturan()) {

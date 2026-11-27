@@ -4,8 +4,8 @@ Dokumen ini mencatat riwayat pengerjaan bertahap, class penting yang telah dibua
 
 ---
 
-## 📌 Status Terakhir: Fase 6 Selesai (Pertunjukan / Event)
-- **Tanggal:** 24 November 2026
+## 📌 Status Terakhir: Fase 7 Selesai (Iuran Bulanan)
+- **Tanggal:** 27 November 2026
 - **Status:** ✅ Selesai, Terintegrasi dengan Database MySQL, & Teruji 100%
 - **Target Platform:** Java 25, Apache Maven, FlatLaf, MySQL JDBC
 
@@ -335,8 +335,55 @@ mvn compile exec:java
 
 ---
 
-## ⏭️ Modul Berikutnya: Fase 7 (Iuran Bulanan)
-1. **DAO:** `IIuranDao` + impl.
-2. **Service:** `IIuranService` + impl (hitung status warna berdasarkan settings: Hijau/Kuning/Merah).
-3. **UI:** `IuranPanel` (pilih bulan/tahun → daftar anggota Aktif + warna indikator + catat bayar).
-4. **Aturan:** Daftar tagihan hanya anggota Aktif (Vakum dan Nonaktif diabaikan); warna indikator berubah dinamis sesuai tanggal dan pengaturan.
+### 🔹 Fase 7 — Iuran Bulanan & Pengaturan Sanggar (Selesai ✅)
+
+#### 1. Lapisan Model & Enums
+- **Model & Enums:**
+  - `com.pakem.model.Iuran`: Model entitas iuran (id, anggota_id, bulan, tahun, nominal, tanggal_bayar, status_bayar), dengan helper field nama anggota, kategori, subkelompok, dan indikator warna.
+  - `com.pakem.model.SanggarSettings`: DTO untuk pengaturan sanggar (nama, nominal default, ambang batas kuning/merah, kapasitas kelompok).
+  - `com.pakem.model.enums.StatusBayar`: `BELUM_BAYAR`, `LUNAS`.
+  - `com.pakem.model.enums.StatusIuranWarna`: `PUTIH` (Belum Bayar), `HIJAU` (Lunas), `KUNING` (Mendekati Batas), `MERAH` (Menunggak).
+
+#### 2. Lapisan Akses Data (DAO)
+- **`IIuranDao` & `IuranDaoImpl`:**
+  - `findByPeriode(bulan, tahun)`: Mengambil semua record iuran per periode dengan join anggota & kategori/subkelompok.
+  - `findByAnggotaAndPeriode(anggotaId, bulan, tahun)`: Cari iuran per anggota.
+  - `save(iuran)`, `update(iuran)`, `saveOrUpdate(iuran)`: Operasi persistensi dengan `ON DUPLICATE KEY UPDATE`.
+  - `delete(id)`, `delete(anggotaId, bulan, tahun)`: Operasi penghapusan.
+- Semua nama tabel & kolom 100% cocok dengan DDL tabel `iuran` di `schema.sql`.
+
+#### 3. Lapisan Logika Bisnis (Service Layer)
+- **`IIuranService` & `IuranServiceImpl`:**
+  - `getDaftarIuranBulan(bulan, tahun)`: Daftar seluruh anggota AKTIF dengan status warna iuran; anggota Vakum dan Nonaktif diabaikan (isolasi status).
+  - `catatPembayaran(anggotaId, bulan, tahun, nominal, tanggalBayar)`: Mencatat pembayaran dengan status LUNAS.
+  - `batalkanPembayaran(anggotaId, bulan, tahun)`: Membatalkan status pembayaran kembali ke belum bayar.
+  - `getPengaturanSanggar()` & `simpanPengaturanSanggar(settings)`: Baca/tulis pengaturan dari tabel settings.
+  - **Logika Indikator Warna (PRD 4.7):**
+    - Hijau → sudah LUNAS.
+    - Merah → sudah lewat bulan tagihan, atau tanggal berjalan melewati `batas_merah`.
+    - Kuning → tanggal berjalan melewati `batas_kuning`.
+    - Putih → belum bayar dan tanggal masih di bawah ambang batas.
+
+#### 4. Lapisan Antarmuka Pengguna (Swing + FlatLaf UI)
+- **`com.pakem.ui.iuran.IuranPanel`:**
+  - Selector bulan & tahun di header.
+  - Tabel daftar anggota Aktif dengan kolom: Indikator Warna (kotak berwarna), Nama Anggota, Kategori/Kelompok, Status Pembayaran, Nominal, Tanggal Bayar, Aksi.
+  - Tombol "💰 Catat Pembayaran" dan "🔄 Batalkan Status".
+  - Baris ringkasan di bawah: Total anggota aktif, jumlah lunas, jumlah belum bayar.
+- **Integrasi `MainFrame`:**
+  - Menu sidebar "Iuran Bulanan" langsung membuka `IuranPanel` (hanya untuk Pengurus).
+  - Placeholder Fase 7 diganti dengan panel iuran yang utuh.
+
+#### 5. Pengujian & Verifikasi
+- Pengujian otomatis pada `src/test/java/com/pakem/IuranTest.java` langsung ke database MySQL:
+  - ✅ **Test 1:** Isolasi status anggota (Hanya Aktif muncul, Vakum & Nonaktif diabaikan).
+  - ✅ **Test 2:** Pencatatan pembayaran iuran (status LUNAS + warna Hijau).
+  - ✅ **Test 3:** Logika warna Merah untuk iuran bulan lalu yang belum dibayar.
+  - ✅ **Test 4:** Pembatalan pembayaran kembali ke Belum Bayar.
+- Kompilasi Maven: **`mvn clean test-compile` BUILD SUCCESS** (0 error, 0 warning).
+
+---
+
+## ⏭️ Modul Berikutnya: Fase 8 (Pengaturan Sanggar)
+1. **UI:** `PengaturanPanel` (nama sanggar, nominal default, ambang batas kuning/merah, kapasitas kelompok).
+2. **Integrasi:** Sidebar menu "Pengaturan Sanggar" untuk Pengurus.
