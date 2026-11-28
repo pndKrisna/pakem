@@ -44,14 +44,56 @@ pakem/
 └── pom.xml                      # Konfigurasi proyek dan dependensi Maven
 ```
 
-## Cara Menjalankan Aplikasi
+## Prasyarat Instalasi
 
-1. **Siapkan Basis Data**:
-   - Pastikan layanan MySQL Server 8.0+ sudah berjalan.
-   - Buat database baru bernama `pakem_db` dan impor struktur tabel dari file `schema.sql`.
-2. **Sesuaikan Konfigurasi Koneksi**:
-   - Periksa kredensial koneksi database di `src/main/resources/config.properties` (default: host `localhost`, port `3306`, database `pakem_db`, user `root`).
-3. **Kompilasi dan Jalankan via Maven**:
+Pastikan perangkat sudah terpasang:
+1. **JDK 25** (Java Development Kit)
+2. **Apache Maven** (terdaftar di environment variable `PATH`)
+3. **MySQL Server 8.0+** (bisa menggunakan Laragon, XAMPP, atau MySQL Installer)
+4. **Git**
+
+### Menambahkan PATH Maven via PowerShell (Windows)
+
+Jika perintah `mvn` belum dikenali di terminal Windows, jalankan perintah berikut di PowerShell dengan menyesuaikan lokasi folder `bin` Maven:
+
+```powershell
+$mavenBin = "C:\Program Files\Apache\maven\bin"
+$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+if ($currentPath -notlike "*$mavenBin*") {
+    [Environment]::SetEnvironmentVariable("Path", "$currentPath;$mavenBin", "User")
+}
+$env:Path += ";$mavenBin"
+mvn -v
+```
+
+## Cara Clone, Pull, dan Menjalankan Aplikasi
+
+1. **Clone Repositori (Pengguna Baru) atau Pull Pembaruan**:
+   - Jika belum memiliki folder proyek di komputer lokal:
+     ```bash
+     git clone [https://github.com/pndkrisna/pakem.git](https://github.com/pndkrisna/pakem.git)
+     cd pakem
+     ```
+   - Jika sudah pernah melakukan *clone* sebelumnya dan ingin mengambil pembaruan terbaru:
+     ```bash
+     git pull origin main
+     ```
+
+2. **Siapkan Basis Data (`pakem_db`)**:
+   - Pastikan layanan MySQL Server aktif.
+   - Buat database baru bernama `pakem_db` (charset `utf8mb4`), lalu jalankan seluruh isi skrip `schema.sql` untuk membuat tabel beserta akun default.
+
+3. **Sesuaikan Konfigurasi Koneksi Database**:
+   - Buka `src/main/resources/config.properties` dan sesuaikan kredensial MySQL lokal jika berbeda:
+     ```properties
+     db.host=localhost
+     db.port=3306
+     db.name=pakem_db
+     db.user=root
+     db.password=
+     ```
+
+4. **Kompilasi dan Jalankan Aplikasi**:
    ```bash
    mvn clean compile exec:java -Dexec.mainClass="com.pakem.Main"
    ```
