@@ -72,7 +72,7 @@ public class MateriTabuhFormDialog extends JDialog {
         fields.setLayout(new BorderLayout(12, 12));
         fields.setOpaque(false);
 
-        JLabel lblNama = new JLabel("Nama Materi / Gending *");
+        JLabel lblNama = new JLabel("Nama Materi / Gending");
         lblNama.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblNama.setForeground(new Color(30, 41, 59));
 

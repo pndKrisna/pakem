@@ -36,6 +36,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -300,30 +301,28 @@ public class MainFrame extends JFrame {
         addSidebarButton(sidebar, "Presensi Latihan", "NAV_PRESENSI");
         addSidebarButton(sidebar, "Pertunjukan / Event", "NAV_EVENT");
 
-        // Polimorfisme Hak Akses: Menu Iuran & Pengaturan hanya ditambahkan jika role mengizinkan
-        if (user.canAccessIuran() || user.canAccessPengaturan()) {
-            sidebar.add(Box.createVerticalStrut(14));
+        boolean hasAdminAccess = user.canAccessIuran() || user.canAccessPengaturan();
+        if (hasAdminAccess) {
+            sidebar.add(Box.createVerticalStrut(8));
+            JSeparator sep = new JSeparator();
+            sep.setMaximumSize(new Dimension(216, 1));
+            sep.setForeground(new Color(226, 232, 240));
+            sidebar.add(sep);
+            sidebar.add(Box.createVerticalStrut(8));
+
             addNavSectionLabel(sidebar, "ADMINISTRASI & KEUANGAN");
 
             if (user.canAccessIuran()) {
                 addSidebarButton(sidebar, "Iuran Bulanan", "NAV_IURAN");
+                sidebar.add(Box.createVerticalStrut(4));
             }
             if (user.canAccessPengaturan()) {
                 addSidebarButton(sidebar, "Pengaturan Sanggar", "NAV_PENGATURAN");
+                sidebar.add(Box.createVerticalStrut(4));
             }
         }
 
-        sidebar.add(Box.createVerticalGlue());
-
-        // Info Versi di bagian bawah
-        JPanel footer = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        footer.setOpaque(false);
-        JLabel lblVer = new JLabel("Pakem v1.0 • Java 25");
-        lblVer.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lblVer.setForeground(new Color(148, 163, 184));
-        footer.add(lblVer);
-        sidebar.add(footer);
-        sidebar.add(Box.createVerticalStrut(10));
+        sidebar.add(Box.createVerticalStrut(16));
 
         return sidebar;
     }

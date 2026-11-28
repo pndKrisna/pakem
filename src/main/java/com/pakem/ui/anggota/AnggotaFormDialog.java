@@ -166,7 +166,7 @@ public class AnggotaFormDialog extends JDialog {
         // 1. Nama Lengkap
         txtNama = new JTextField();
         txtNama.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        addFormField(formPanel, gbc, row++, "Nama Lengkap *", txtNama);
+        addFormField(formPanel, gbc, row++, "Nama Lengkap", txtNama);
 
         // 2. Nomor Kontak
         txtKontak = new JTextField();
@@ -177,12 +177,12 @@ public class AnggotaFormDialog extends JDialog {
         txtTanggalBergabung = new JTextField();
         txtTanggalBergabung.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         txtTanggalBergabung.setText(LocalDate.now().toString());
-        addFormField(formPanel, gbc, row++, "Tgl Bergabung (YYYY-MM-DD) *", txtTanggalBergabung);
+        addFormField(formPanel, gbc, row++, "Tgl Bergabung (YYYY-MM-DD)", txtTanggalBergabung);
 
         // 4. Status Keanggotaan
         cmbStatus = new JComboBox<>(StatusAnggota.values());
         cmbStatus.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        addFormField(formPanel, gbc, row++, "Status Keanggotaan *", cmbStatus);
+        addFormField(formPanel, gbc, row++, "Status Keanggotaan", cmbStatus);
 
         // 5. Kategori Tingkat
         cmbKategori = new JComboBox<>();

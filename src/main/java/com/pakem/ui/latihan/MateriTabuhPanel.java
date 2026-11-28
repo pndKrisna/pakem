@@ -30,7 +30,7 @@ import java.util.List;
 
 /**
  * Panel utama untuk Modul Master Materi Tabuh (Repertoar / Gending).
- * Pengurus dan Pelatih memiliki hak akses penuh terhadap master materi tabuh.
+ * Layout standar: Header + Toolbar + Table + Bottom Bar.
  */
 public class MateriTabuhPanel extends JPanel {
 
@@ -56,17 +56,18 @@ public class MateriTabuhPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(241, 245, 249));
 
-        // Top Bar Header
-        JPanel topBar = new JPanel(new BorderLayout());
-        topBar.setBackground(Color.WHITE);
-        topBar.setBorder(BorderFactory.createCompoundBorder(
+        // 1. Top Panel (Header + Action Buttons)
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setBackground(Color.WHITE);
+        topPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
                 BorderFactory.createEmptyBorder(16, 24, 16, 24)
         ));
 
-        JPanel titleTextPanel = new JPanel();
-        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
-        titleTextPanel.setOpaque(false);
+        // Title Row
+        JPanel titleRow = new JPanel(new BorderLayout());
+        titleRow.setOpaque(false);
 
         JLabel lblTitle = new JLabel("Master Materi Tabuh");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
@@ -76,28 +77,72 @@ public class MateriTabuhPanel extends JPanel {
         lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblSubtitle.setForeground(new Color(100, 116, 139));
 
+        JPanel titleTextPanel = new JPanel();
+        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
+        titleTextPanel.setOpaque(false);
         titleTextPanel.add(lblTitle);
         titleTextPanel.add(Box.createVerticalStrut(2));
         titleTextPanel.add(lblSubtitle);
 
-        topBar.add(titleTextPanel, BorderLayout.WEST);
+        titleRow.add(titleTextPanel, BorderLayout.WEST);
+
+        // Action Buttons Row (Right)
+        JPanel actionButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actionButtonPanel.setOpaque(false);
+
+        btnTambahMateri = new JButton("+ Tambah Materi");
+        btnTambahMateri.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnTambahMateri.setBackground(new Color(37, 99, 235));
+        btnTambahMateri.setForeground(Color.WHITE);
+        btnTambahMateri.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnTambahMateri.setFocusPainted(false);
+        btnTambahMateri.setVisible(currentUser.canManageMateriTabuh());
+        btnTambahMateri.addActionListener(e -> openAddMateriDialog());
+
+        btnUbahMateri = new JButton("Ubah Nama");
+        btnUbahMateri.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnUbahMateri.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnUbahMateri.setFocusPainted(false);
+        btnUbahMateri.setEnabled(false);
+        btnUbahMateri.setVisible(currentUser.canManageMateriTabuh());
+        btnUbahMateri.addActionListener(e -> openEditMateriDialog());
+
+        btnHapusMateri = new JButton("Hapus Materi");
+        btnHapusMateri.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnHapusMateri.setForeground(new Color(220, 38, 38));
+        btnHapusMateri.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnHapusMateri.setFocusPainted(false);
+        btnHapusMateri.setEnabled(false);
+        btnHapusMateri.setVisible(currentUser.canManageMateriTabuh());
+        btnHapusMateri.addActionListener(e -> deleteMateri());
+
+        JButton btnRefresh = new JButton("Refresh");
+        btnRefresh.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnRefresh.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnRefresh.setFocusPainted(false);
+        btnRefresh.addActionListener(e -> loadMateriList());
+
+        actionButtonPanel.add(btnTambahMateri);
+        actionButtonPanel.add(btnUbahMateri);
+        actionButtonPanel.add(btnHapusMateri);
+        actionButtonPanel.add(btnRefresh);
 
         if (!currentUser.canManageMateriTabuh()) {
-            JPanel bannerPelatih = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            bannerPelatih.setOpaque(false);
             JLabel lblPelatih = new JLabel("  Mode Pelatih: Hanya Melihat Materi  ");
             lblPelatih.setFont(new Font("Segoe UI", Font.BOLD, 11));
             lblPelatih.setOpaque(true);
             lblPelatih.setBackground(new Color(254, 243, 199));
             lblPelatih.setForeground(new Color(180, 83, 9));
             lblPelatih.setBorder(BorderFactory.createLineBorder(new Color(252, 211, 77), 1, true));
-            bannerPelatih.add(lblPelatih);
-            topBar.add(bannerPelatih, BorderLayout.EAST);
+            actionButtonPanel.add(Box.createHorizontalStrut(12));
+            actionButtonPanel.add(lblPelatih);
         }
 
-        add(topBar, BorderLayout.NORTH);
+        titleRow.add(actionButtonPanel, BorderLayout.EAST);
+        topPanel.add(titleRow);
+        add(topPanel, BorderLayout.NORTH);
 
-        // Table Area
+        // 2. Table Panel
         String[] columns = {"ID", "Nama Materi / Gending", "Deskripsi"};
         modelMateri = new DefaultTableModel(columns, 0) {
             @Override
@@ -112,10 +157,14 @@ public class MateriTabuhPanel extends JPanel {
         tblMateri.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tblMateri.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         tblMateri.getTableHeader().setBackground(new Color(248, 250, 252));
+        tblMateri.getTableHeader().setForeground(new Color(71, 85, 105));
+        tblMateri.setShowGrid(true);
+        tblMateri.setGridColor(new Color(241, 245, 249));
 
-        tblMateri.getColumnModel().getColumn(0).setPreferredWidth(50);
+        // Column widths - reduced to fit sidebar-collapsed viewport
+        tblMateri.getColumnModel().getColumn(0).setPreferredWidth(45);
         tblMateri.getColumnModel().getColumn(1).setPreferredWidth(200);
-        tblMateri.getColumnModel().getColumn(2).setPreferredWidth(400);
+        tblMateri.getColumnModel().getColumn(2).setPreferredWidth(300);
 
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
@@ -128,42 +177,20 @@ public class MateriTabuhPanel extends JPanel {
         });
 
         JScrollPane scrollTable = new JScrollPane(tblMateri);
-        scrollTable.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        scrollTable.setBorder(BorderFactory.createEmptyBorder(12, 24, 12, 24));
         add(scrollTable, BorderLayout.CENTER);
 
-        // Action Buttons Bottom
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 10));
-        actionPanel.setBackground(Color.WHITE);
-        actionPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)));
+        // 3. Bottom Summary Bar
+        JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 10));
+        bottomBar.setBackground(Color.WHITE);
+        bottomBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)));
 
-        btnTambahMateri = new JButton("+ Tambah Materi");
-        btnTambahMateri.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnTambahMateri.setBackground(new Color(37, 99, 235));
-        btnTambahMateri.setForeground(Color.WHITE);
-        btnTambahMateri.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnTambahMateri.setVisible(currentUser.canManageMateriTabuh());
-        btnTambahMateri.addActionListener(e -> openAddMateriDialog());
+        JLabel lblSummary = new JLabel("Total Materi: 0");
+        lblSummary.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblSummary.setForeground(new Color(30, 41, 59));
+        bottomBar.add(lblSummary);
 
-        btnUbahMateri = new JButton("Ubah Nama");
-        btnUbahMateri.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnUbahMateri.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnUbahMateri.setEnabled(false);
-        btnUbahMateri.setVisible(currentUser.canManageMateriTabuh());
-        btnUbahMateri.addActionListener(e -> openEditMateriDialog());
-
-        btnHapusMateri = new JButton("Hapus Materi");
-        btnHapusMateri.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnHapusMateri.setForeground(new Color(220, 38, 38));
-        btnHapusMateri.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnHapusMateri.setEnabled(false);
-        btnHapusMateri.setVisible(currentUser.canManageMateriTabuh());
-        btnHapusMateri.addActionListener(e -> deleteMateri());
-
-        actionPanel.add(btnTambahMateri);
-        actionPanel.add(btnUbahMateri);
-        actionPanel.add(btnHapusMateri);
-
-        add(actionPanel, BorderLayout.SOUTH);
+        add(bottomBar, BorderLayout.SOUTH);
     }
 
     private void loadMateriList() {
@@ -181,6 +208,11 @@ public class MateriTabuhPanel extends JPanel {
                         m.getDeskripsi() != null ? m.getDeskripsi() : "-"
                 });
             }
+
+            // Update summary
+            JLabel lblSummary = (JLabel) ((JPanel) getComponent(2)).getComponent(0);
+            lblSummary.setText("Total Materi: " + data.size());
+
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Gagal memuat materi tabuh: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }

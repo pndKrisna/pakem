@@ -165,7 +165,7 @@ mvn compile exec:java
   - Form pembuatan/pengeditan jadwal latihan (tanggal, jam mulai/selesai dengan spinner time, lokasi, pemilihan kategori & subkelompok dinamis, catatan).
 - **`com.pakem.ui.latihan.SesiMateriDialog`**:
   - Split-view modern: panel kiri menampilkan daftar materi tabuh di sesi ini, panel kanan menampilkan form input catatan progres baru dan kotak referensi **Catatan Progres Terakhir**.
-  - **Fitur "📋 Salin Pengumuman (WA)"**: Memformat secara otomatis teks pesan pengumuman jadwal latihan (hari, tanggal, jam, lokasi, kelompok, daftar materi gending beserta target progres) langsung ke sistem clipboard untuk dibagikan ke grup WhatsApp.
+  - **Fitur "Salin Pengumuman (WA)"**: Memformat secara otomatis teks pesan pengumuman jadwal latihan (hari, tanggal, jam, lokasi, kelompok, daftar materi gending beserta target progres) langsung ke sistem clipboard untuk dibagikan ke grup WhatsApp.
 - **Integrasi `MainFrame`**:
   - Menu sidebar "Jadwal Latihan" dan "Materi Tabuh" telah terhubung penuh dan aktif.
 
@@ -198,7 +198,7 @@ mvn compile exec:java
    - Buka menu **Jadwal Latihan**, klik **+ Tambah Jadwal** untuk membuat jadwal baru (pilih tanggal, jam, kategori, dan lokasi).
    - Pilih jadwal yang baru dibuat, lalu klik **Lihat Sesi Materi**.
    - Pada dialog sesi materi, pilih materi tabuh dan isi catatan progres (misal: *"Selesai bagian kawitan"*), lalu klik **+ Tambah ke Jadwal**.
-   - Klik tombol **📋 Salin Pengumuman (WA)**, lalu lakukan *Paste (Ctrl+V)* di teks editor atau WhatsApp untuk melihat format pengumuman yang rapi.
+   - Klik tombol **Salin Pengumuman (WA)**, lalu lakukan *Paste (Ctrl+V)* di teks editor atau WhatsApp untuk melihat format pengumuman yang rapi.
    - Buat jadwal kedua dengan materi yang sama, amati kotak **Catatan Progres Terakhir** secara otomatis menampilkan catatan dari pertemuan sebelumnya.
 
 ---
@@ -423,3 +423,19 @@ mvn compile exec:java
 
 ## 🏆 Seluruh Rencana Tahapan Pengembangan Pakem v1.0 Rampung (Fase 0 s.d. Fase 8)
 Aplikasi telah memiliki fungsionalitas lengkap sesuai spesifikasi PRD v1.0 dan siap digunakan secara penuh.
+
+---
+
+## 🎨 UI/UX Redesign Tahap 1 (28 November 2026) — Standarisasi & Pembersihan
+- **LoginPanel.java:** Hilangkan emoji, info akun demo, dan teks basa-basi. Tambah toggle show/hide password (teks "Tampilkan"/"Sembunyikan"), Enter submit, error message rapi di dalam card. Label rata kiri sejajar input.
+- **MainFrame.java:** Pindahkan "Pengaturan Sanggar" ke paling bawah sidebar (setelah separator), hapus "Pakem v1.0 • Java 25" di footer sidebar. TopBar rapikan brand & user panel.
+- **AnggotaListPanel.java:** Sudah standar layout (Header + Toolbar + Filter + Table + Bottom Bar). Tidak ada emoji. Renderer StatusBadge pill modern.
+- **EventListPanel.java:** Layout standar, hapus emoji di tombol (👥 → "Kelola Tim & Pemain...", 📋 → "Salin WA"). Renderer JenisAcara badge. Bottom summary bar.
+- **IuranPanel.java:** Layout standar, hapus emoji (💰/🔄). Indikator status ganti dari blok warna penuh → pill (● + teks) ringkas. Badge Status Bayar modern. Header title + filter periode.
+- **JadwalLatihanPanel.java:** Layout standar seragam dengan AnggotaListPanel. Hapus emoji. Title "Jadwal Latihan" (bukan "Jadwal Latihan & Materi Tabuh"). Filter Jenis + Kategori. Renderer JenisJadwal badge. Bottom summary.
+- **MateriTabuhPanel.java:** Layout standar seragam. Hapus emoji. Title "Master Materi Tabuh". Action buttons di header kanan. Bottom summary.
+- **DashboardPanel.java:** Layout standar Header + Metric Cards + 2 Column Tables. Hapus emoji di section title (📅/🎭). Title "Dashboard". User role badge di header kanan. Padding 24/24.
+- **PengaturanPanel.java:** Layout standar Header + Form Card + Scroll. Hapus emoji (💾). Form rapi, label kiri field kanan, spinner styled, action buttons kanan.
+- **PresensiPanel.java:** Layout standar Header + Selector + Toolbar + Table + Bottom Bar. Hapus emoji (✅/💾). Selector jadwal + detail label. Column widths reduced. StatusHadir badge renderer.
+- **RekapPresensiPanel.java:** Layout standar Header + Filter + Table. Hapus emoji (📋). Filter Kategori/Subkelompok/Tanggal. Persentase badge renderer.
+- **KategoriTingkatPanel.java:** (SplitPane layout sudah unik) - Hapus emoji (⚡). Auto-Grouping button teks bersih. Renderer KapasitasBadge modern.

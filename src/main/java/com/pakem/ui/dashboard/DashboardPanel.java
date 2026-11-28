@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Panel Dashboard Ringkasan Interaktif (Fase 8).
- * Menampilkan ringkasan statistik anggota, jadwal terdekat, presensi, dan status iuran (khusus Pengurus).
+ * Panel Dashboard Ringkasan Interaktif.
+ * Layout standar: Header + Metric Cards + Two Column Tables.
  */
 public class DashboardPanel extends JPanel {
 
@@ -60,41 +60,60 @@ public class DashboardPanel extends JPanel {
     }
 
     private void initComponents() {
-        JPanel root = new JPanel();
-        root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
-        root.setOpaque(false);
-        root.setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
-
-        // 1. Welcome Header
-        JPanel banner = new JPanel(new BorderLayout());
-        banner.setBackground(Color.WHITE);
-        banner.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true),
-                BorderFactory.createEmptyBorder(20, 24, 20, 24)
+        // 1. Top Panel (Header)
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setBackground(Color.WHITE);
+        topPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
+                BorderFactory.createEmptyBorder(16, 24, 16, 24)
         ));
-        banner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
 
-        JPanel bannerText = new JPanel();
-        bannerText.setLayout(new BoxLayout(bannerText, BoxLayout.Y_AXIS));
-        bannerText.setOpaque(false);
+        // Title Row
+        JPanel titleRow = new JPanel(new BorderLayout());
+        titleRow.setOpaque(false);
 
-        JLabel lblGreeting = new JLabel("Selamat Datang di Sanggar Seni Tabuh Pakem!");
-        lblGreeting.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblGreeting.setForeground(new Color(15, 23, 42));
+        JLabel lblTitle = new JLabel("Dashboard");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblTitle.setForeground(new Color(15, 23, 42));
 
-        JLabel lblDesc = new JLabel("Halo, " + currentUser.getUsername() + " (" + currentUser.getRole().getLabel() + "). Berikut ringkasan operasional dan kegiatan terkini.");
-        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblDesc.setForeground(new Color(100, 116, 139));
+        JLabel lblSubtitle = new JLabel("Ringkasan operasional dan kegiatan terkini sanggar.");
+        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblSubtitle.setForeground(new Color(100, 116, 139));
 
-        bannerText.add(lblGreeting);
-        bannerText.add(Box.createVerticalStrut(4));
-        bannerText.add(lblDesc);
-        banner.add(bannerText, BorderLayout.WEST);
+        JPanel titleTextPanel = new JPanel();
+        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
+        titleTextPanel.setOpaque(false);
+        titleTextPanel.add(lblTitle);
+        titleTextPanel.add(Box.createVerticalStrut(2));
+        titleTextPanel.add(lblSubtitle);
 
-        root.add(banner);
-        root.add(Box.createVerticalStrut(20));
+        titleRow.add(titleTextPanel, BorderLayout.WEST);
 
-        // 2. Metric Stat Cards Row
+        // User badge
+        JLabel lblRoleBadge = new JLabel("  " + currentUser.getRole().getLabel() + "  ");
+        lblRoleBadge.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        lblRoleBadge.setOpaque(true);
+        if (currentUser.getRole() == com.pakem.model.enums.RoleUser.PENGURUS) {
+            lblRoleBadge.setBackground(new Color(238, 242, 255));
+            lblRoleBadge.setForeground(new Color(79, 70, 229));
+        } else {
+            lblRoleBadge.setBackground(new Color(240, 253, 244));
+            lblRoleBadge.setForeground(new Color(22, 163, 74));
+        }
+        lblRoleBadge.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));
+
+        titleRow.add(lblRoleBadge, BorderLayout.EAST);
+        topPanel.add(titleRow);
+        add(topPanel, BorderLayout.NORTH);
+
+        // 2. Content Panel (Metric Cards + Tables)
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setOpaque(false);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(24, 24, 24, 24));
+
+        // Metric Stat Cards Row
         int statGridCols = currentUser.canAccessIuran() ? 4 : 3;
         JPanel statGrid = new JPanel(new GridLayout(1, statGridCols, 16, 0));
         statGrid.setOpaque(false);
@@ -122,46 +141,71 @@ public class DashboardPanel extends JPanel {
         JPanel cardOperasional = createStatCard("JADWAL TERDEKAT", "0", "Latihan & Pertunjukan", new Color(124, 58, 237), new Color(245, 243, 255));
         statGrid.add(cardOperasional);
 
-        root.add(statGrid);
-        root.add(Box.createVerticalStrut(24));
+        contentPanel.add(statGrid);
+        contentPanel.add(Box.createVerticalStrut(24));
 
-        // 3. Two Columns: Latihan Terdekat & Event Terdekat
+        // Two Columns: Latihan Terdekat & Event Terdekat
         JPanel tablesPanel = new JPanel(new GridLayout(1, 2, 20, 0));
         tablesPanel.setOpaque(false);
-        tablesPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 380));
+        tablesPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 360));
 
         // Panel Latihan Terdekat
-        JPanel pnlLatihan = createSectionCard("📅 Jadwal Latihan Terdekat");
+        JPanel pnlLatihan = createSectionCard("Jadwal Latihan Terdekat");
         String[] colLatihan = {"Tanggal", "Waktu", "Kelompok / Event", "Lokasi"};
         modelJadwal = new DefaultTableModel(colLatihan, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
         tblJadwal = new JTable(modelJadwal);
-        tblJadwal.setRowHeight(28);
+        tblJadwal.setRowHeight(32);
+        tblJadwal.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        tblJadwal.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 11));
+        tblJadwal.getTableHeader().setBackground(new Color(248, 250, 252));
+        tblJadwal.setShowGrid(true);
+        tblJadwal.setGridColor(new Color(241, 245, 249));
+        tblJadwal.getColumnModel().getColumn(0).setPreferredWidth(70);
+        tblJadwal.getColumnModel().getColumn(1).setPreferredWidth(70);
+        tblJadwal.getColumnModel().getColumn(2).setPreferredWidth(120);
+        tblJadwal.getColumnModel().getColumn(3).setPreferredWidth(90);
+
         JScrollPane spLatihan = new JScrollPane(tblJadwal);
         spLatihan.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
+        spLatihan.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
         pnlLatihan.add(spLatihan, BorderLayout.CENTER);
         tablesPanel.add(pnlLatihan);
 
         // Panel Event Terdekat
-        JPanel pnlEvent = createSectionCard("🎭 Pertunjukan / Event Terdekat");
+        JPanel pnlEvent = createSectionCard("Pertunjukan / Event Terdekat");
         String[] colEvent = {"Tanggal", "Nama Acara", "Jenis", "Lokasi"};
         modelEvent = new DefaultTableModel(colEvent, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
         tblEvent = new JTable(modelEvent);
-        tblEvent.setRowHeight(28);
+        tblEvent.setRowHeight(32);
+        tblEvent.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        tblEvent.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 11));
+        tblEvent.getTableHeader().setBackground(new Color(248, 250, 252));
+        tblEvent.setShowGrid(true);
+        tblEvent.setGridColor(new Color(241, 245, 249));
+        tblEvent.getColumnModel().getColumn(0).setPreferredWidth(70);
+        tblEvent.getColumnModel().getColumn(1).setPreferredWidth(120);
+        tblEvent.getColumnModel().getColumn(2).setPreferredWidth(80);
+        tblEvent.getColumnModel().getColumn(3).setPreferredWidth(80);
+
         JScrollPane spEvent = new JScrollPane(tblEvent);
         spEvent.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
+        spEvent.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
         pnlEvent.add(spEvent, BorderLayout.CENTER);
         tablesPanel.add(pnlEvent);
 
-        root.add(tablesPanel);
-        root.add(Box.createVerticalGlue());
+        contentPanel.add(tablesPanel);
+        contentPanel.add(Box.createVerticalGlue());
 
-        JScrollPane scroll = new JScrollPane(root);
+        JScrollPane scroll = new JScrollPane(contentPanel);
         scroll.setBorder(null);
         scroll.getVerticalScrollBar().setUnitIncrement(14);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.getViewport().setOpaque(true);
+        scroll.getViewport().setBackground(new Color(241, 245, 249));
         add(scroll, BorderLayout.CENTER);
     }
 

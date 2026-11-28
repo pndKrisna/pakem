@@ -3,12 +3,13 @@ package com.pakem.ui;
 import com.pakem.model.User;
 import com.pakem.service.interfaces.IAuthService;
 
+import com.formdev.flatlaf.FlatClientProperties;
+
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
@@ -23,6 +24,7 @@ import java.awt.event.KeyEvent;
 
 /**
  * Panel Login modern dengan tema FlatLaf.
+ * Tanpa emoji, tanpa info akun demo, show/hide password bawaan FlatLaf.
  */
 public class LoginPanel extends JPanel {
 
@@ -46,7 +48,7 @@ public class LoginPanel extends JPanel {
 
     private void initUI() {
         setLayout(new GridBagLayout());
-        setBackground(new Color(245, 247, 250)); // Latar belakang netral bersih
+        setBackground(new Color(245, 247, 250));
 
         // Card Container Utama
         JPanel cardPanel = new JPanel();
@@ -54,26 +56,23 @@ public class LoginPanel extends JPanel {
         cardPanel.setBackground(Color.WHITE);
         cardPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(225, 230, 238), 1, true),
-                BorderFactory.createEmptyBorder(35, 40, 35, 40)
+                BorderFactory.createEmptyBorder(40, 48, 40, 48)
         ));
-        cardPanel.setPreferredSize(new Dimension(420, 480));
-        cardPanel.setMaximumSize(new Dimension(420, 480));
+        cardPanel.setPreferredSize(new Dimension(420, 460));
+        cardPanel.setMaximumSize(new Dimension(420, 460));
 
-        // Header: Nama Aplikasi & Subtitle
-        JLabel lblTitle = new JLabel("PAKEM");
+        // Header: Nama Aplikasi & Subtitle (Rata Tengah)
+        JLabel lblTitle = new JLabel("PAKEM", SwingConstants.CENTER);
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 28));
         lblTitle.setForeground(new Color(30, 41, 59));
-        lblTitle.setAlignmentX(CENTER_ALIGNMENT);
+        lblTitle.setAlignmentX(LEFT_ALIGNMENT);
+        lblTitle.setMaximumSize(new Dimension(324, 38));
 
-        JLabel lblSubtitle = new JLabel("Administrasi Sanggar Seni Tabuh");
+        JLabel lblSubtitle = new JLabel("Administrasi Sanggar Seni Tabuh", SwingConstants.CENTER);
         lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblSubtitle.setForeground(new Color(100, 116, 139));
-        lblSubtitle.setAlignmentX(CENTER_ALIGNMENT);
-
-        JLabel lblInstruction = new JLabel("Silakan masuk menggunakan akun Anda");
-        lblInstruction.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblInstruction.setForeground(new Color(71, 85, 105));
-        lblInstruction.setAlignmentX(CENTER_ALIGNMENT);
+        lblSubtitle.setAlignmentX(LEFT_ALIGNMENT);
+        lblSubtitle.setMaximumSize(new Dimension(324, 22));
 
         // Form Fields
         JLabel lblUserTag = new JLabel("Username");
@@ -83,81 +82,60 @@ public class LoginPanel extends JPanel {
 
         txtUsername = new JTextField();
         txtUsername.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtUsername.setMaximumSize(new Dimension(340, 38));
-        txtUsername.setPreferredSize(new Dimension(340, 38));
-        txtUsername.putClientProperty("JTextField.placeholderText", "Masukkan username...");
+        txtUsername.setAlignmentX(LEFT_ALIGNMENT);
+        txtUsername.setMaximumSize(new Dimension(324, 40));
+        txtUsername.setPreferredSize(new Dimension(324, 40));
+        txtUsername.putClientProperty("JTextField.placeholderText", "Masukkan username");
 
         JLabel lblPassTag = new JLabel("Password");
         lblPassTag.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblPassTag.setForeground(new Color(51, 65, 85));
         lblPassTag.setAlignmentX(LEFT_ALIGNMENT);
 
+        // Password field dengan FlatLaf built-in show/hide button
         txtPassword = new JPasswordField();
         txtPassword.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        txtPassword.setMaximumSize(new Dimension(340, 38));
-        txtPassword.setPreferredSize(new Dimension(340, 38));
-        txtPassword.putClientProperty("JTextField.placeholderText", "Masukkan password...");
+        txtPassword.setAlignmentX(LEFT_ALIGNMENT);
+        txtPassword.setMaximumSize(new Dimension(324, 40));
+        txtPassword.setPreferredSize(new Dimension(324, 40));
+        txtPassword.putClientProperty("JTextField.placeholderText", "Masukkan password");
+        txtPassword.putClientProperty(FlatClientProperties.STYLE, "showRevealButton: true");
+        txtPassword.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(203, 213, 225), 1, true),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
 
-        // Pesan Error
+        // Pesan Error Inline (Tanpa Pop-up)
         lblError = new JLabel(" ");
         lblError.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblError.setForeground(new Color(220, 38, 38)); // Merah
-        lblError.setAlignmentX(CENTER_ALIGNMENT);
-        lblError.setHorizontalAlignment(SwingConstants.CENTER);
+        lblError.setForeground(new Color(220, 38, 38));
+        lblError.setHorizontalAlignment(SwingConstants.LEFT);
+        lblError.setAlignmentX(LEFT_ALIGNMENT);
+        lblError.setPreferredSize(new Dimension(324, 28));
+        lblError.setMaximumSize(new Dimension(324, 36));
 
         // Tombol Login
         btnLogin = new JButton("Masuk ke Sistem");
         btnLogin.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnLogin.setBackground(new Color(37, 99, 235)); // Biru primer
+        btnLogin.setBackground(new Color(37, 99, 235));
         btnLogin.setForeground(Color.WHITE);
         btnLogin.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnLogin.setMaximumSize(new Dimension(340, 42));
-        btnLogin.setPreferredSize(new Dimension(340, 42));
+        btnLogin.setMaximumSize(new Dimension(324, 44));
+        btnLogin.setPreferredSize(new Dimension(324, 44));
         btnLogin.setFocusPainted(false);
-        btnLogin.setAlignmentX(CENTER_ALIGNMENT);
-
-        // Hint Akun Bawaan
-        JPanel hintPanel = new JPanel();
-        hintPanel.setLayout(new BoxLayout(hintPanel, BoxLayout.Y_AXIS));
-        hintPanel.setOpaque(false);
-        hintPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(241, 245, 249)),
-                BorderFactory.createEmptyBorder(12, 0, 0, 0)
-        ));
-
-        JLabel lblHint1 = new JLabel("Akun Bawaan:");
-        lblHint1.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblHint1.setForeground(new Color(100, 116, 139));
-        lblHint1.setAlignmentX(CENTER_ALIGNMENT);
-
-        JLabel lblHint2 = new JLabel("Pengurus: pengurus / pengurus123");
-        lblHint2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lblHint2.setForeground(new Color(100, 116, 139));
-        lblHint2.setAlignmentX(CENTER_ALIGNMENT);
-
-        JLabel lblHint3 = new JLabel("Pelatih: pelatih / pelatih123");
-        lblHint3.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lblHint3.setForeground(new Color(100, 116, 139));
-        lblHint3.setAlignmentX(CENTER_ALIGNMENT);
-
-        hintPanel.add(lblHint1);
-        hintPanel.add(Box.createVerticalStrut(3));
-        hintPanel.add(lblHint2);
-        hintPanel.add(Box.createVerticalStrut(2));
-        hintPanel.add(lblHint3);
+        btnLogin.setAlignmentX(LEFT_ALIGNMENT);
+        btnLogin.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
 
         // Susun Komponen ke dalam Card
         cardPanel.add(lblTitle);
         cardPanel.add(Box.createVerticalStrut(4));
         cardPanel.add(lblSubtitle);
-        cardPanel.add(Box.createVerticalStrut(15));
-        cardPanel.add(lblInstruction);
-        cardPanel.add(Box.createVerticalStrut(20));
+        cardPanel.add(Box.createVerticalStrut(28));
 
         cardPanel.add(lblUserTag);
         cardPanel.add(Box.createVerticalStrut(6));
         cardPanel.add(txtUsername);
-        cardPanel.add(Box.createVerticalStrut(14));
+        cardPanel.add(Box.createVerticalStrut(16));
 
         cardPanel.add(lblPassTag);
         cardPanel.add(Box.createVerticalStrut(6));
@@ -168,8 +146,6 @@ public class LoginPanel extends JPanel {
         cardPanel.add(Box.createVerticalStrut(10));
 
         cardPanel.add(btnLogin);
-        cardPanel.add(Box.createVerticalStrut(16));
-        cardPanel.add(hintPanel);
 
         add(cardPanel);
 
@@ -189,11 +165,12 @@ public class LoginPanel extends JPanel {
     }
 
     private void performLogin() {
-        String username = txtUsername.getText();
+        String username = txtUsername.getText().trim();
         String password = new String(txtPassword.getPassword());
 
         lblError.setText(" ");
         btnLogin.setEnabled(false);
+        btnLogin.setText("Memproses...");
 
         try {
             User user = authService.login(username, password);
@@ -201,14 +178,15 @@ public class LoginPanel extends JPanel {
                 loginListener.onLoginSuccess(user);
             }
         } catch (Throwable ex) {
-            String msg = ex.getMessage() != null ? ex.getMessage() : ex.toString();
-            lblError.setText(msg);
+            String msg = (ex.getMessage() != null && !ex.getMessage().isBlank())
+                    ? ex.getMessage()
+                    : "Username atau password salah.";
+            lblError.setText("<html>" + msg + "</html>");
             txtPassword.setText("");
             txtPassword.requestFocusInWindow();
-            JOptionPane.showMessageDialog(this,
-                    "Login gagal: " + msg, "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
             btnLogin.setEnabled(true);
+            btnLogin.setText("Masuk ke Sistem");
         }
     }
 

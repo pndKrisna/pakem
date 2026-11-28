@@ -116,7 +116,7 @@ public class SesiMateriDialog extends JDialog {
         titlePanel.add(Box.createVerticalStrut(2));
         titlePanel.add(lblSubtitle);
 
-        btnSalinPengumuman = new JButton("📋 Salin Pengumuman (WA)");
+        btnSalinPengumuman = new JButton("Salin Pengumuman (WA)");
         btnSalinPengumuman.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnSalinPengumuman.setBackground(new Color(16, 185, 129)); // Emerald Green
         btnSalinPengumuman.setForeground(Color.WHITE);
@@ -242,7 +242,7 @@ public class SesiMateriDialog extends JDialog {
         formCard.setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 20));
 
         // 1. Pilihan Materi Tabuh
-        JLabel lblMateri = new JLabel("Pilih Materi Tabuh *");
+        JLabel lblMateri = new JLabel("Pilih Materi Tabuh");
         lblMateri.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lblMateri.setForeground(new Color(30, 41, 59));
         lblMateri.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -259,7 +259,7 @@ public class SesiMateriDialog extends JDialog {
         formCard.add(Box.createVerticalStrut(14));
 
         // 2. Info Catatan Progres Sesi Sebelumnya (Kontinuitas Progres)
-        lblProgresTerakhirHeader = new JLabel("📖 Catatan Progres Terakhir (Pertemuan Sebelumnya):");
+        lblProgresTerakhirHeader = new JLabel("Catatan Progres Terakhir (Pertemuan Sebelumnya):");
         lblProgresTerakhirHeader.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblProgresTerakhirHeader.setForeground(new Color(79, 70, 229)); // Indigo
         lblProgresTerakhirHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -378,17 +378,17 @@ public class SesiMateriDialog extends JDialog {
             try {
                 SesiMateri last = latihanService.getProgresTerakhirByMateri(m.getId());
                 if (last != null && last.getCatatanProgres() != null && !last.getCatatanProgres().trim().isEmpty()) {
-                    lblProgresTerakhirHeader.setText("📖 Catatan Progres Terakhir (" + last.getTanggalJadwal() + "):");
+                    lblProgresTerakhirHeader.setText("Catatan Progres Terakhir (" + last.getTanggalJadwal() + "):");
                     txtProgresTerakhir.setText(last.getCatatanProgres());
                 } else {
-                    lblProgresTerakhirHeader.setText("📖 Catatan Progres Terakhir:");
+                    lblProgresTerakhirHeader.setText("Catatan Progres Terakhir:");
                     txtProgresTerakhir.setText("Belum ada riwayat progres sebelumnya untuk materi ini.");
                 }
             } catch (Exception ex) {
                 txtProgresTerakhir.setText("Tidak dapat mengambil referensi progres: " + ex.getMessage());
             }
         } else {
-            lblProgresTerakhirHeader.setText("📖 Catatan Progres Terakhir (Pertemuan Sebelumnya):");
+            lblProgresTerakhirHeader.setText("Catatan Progres Terakhir (Pertemuan Sebelumnya):");
             txtProgresTerakhir.setText("Pilih materi tabuh di atas untuk melihat progres latihan terakhir.");
         }
     }

@@ -18,7 +18,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -34,8 +33,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Panel Lembar Pencatatan Presensi Kehadiran Latihan (Fase 5).
- * Mendukung pencatatan kehadiran cepat dengan combo status, tombol set semua hadir, dan ringkasan.
+ * Panel Lembar Pencatatan Presensi Kehadiran Latihan.
+ * Layout standar: Header + Selector + Toolbar + Table + Bottom Bar.
  */
 public class PresensiPanel extends JPanel {
 
@@ -72,15 +71,16 @@ public class PresensiPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(241, 245, 249));
 
-        // 1. Header & Selector Jadwal
-        JPanel topContainer = new JPanel();
-        topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
-        topContainer.setBackground(Color.WHITE);
-        topContainer.setBorder(BorderFactory.createCompoundBorder(
+        // 1. Top Panel (Header + Selector)
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setBackground(Color.WHITE);
+        topPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
-                BorderFactory.createEmptyBorder(16, 24, 16, 24)
+                BorderFactory.createEmptyBorder(16, 24, 12, 24)
         ));
 
+        // Title Row
         JPanel titleRow = new JPanel(new BorderLayout());
         titleRow.setOpaque(false);
 
@@ -92,18 +92,51 @@ public class PresensiPanel extends JPanel {
         lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblSubtitle.setForeground(new Color(100, 116, 139));
 
-        JPanel titleText = new JPanel();
-        titleText.setLayout(new BoxLayout(titleText, BoxLayout.Y_AXIS));
-        titleText.setOpaque(false);
-        titleText.add(lblTitle);
-        titleText.add(Box.createVerticalStrut(2));
-        titleText.add(lblSubtitle);
+        JPanel titleTextPanel = new JPanel();
+        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
+        titleTextPanel.setOpaque(false);
+        titleTextPanel.add(lblTitle);
+        titleTextPanel.add(Box.createVerticalStrut(2));
+        titleTextPanel.add(lblSubtitle);
 
-        titleRow.add(titleText, BorderLayout.WEST);
+        titleRow.add(titleTextPanel, BorderLayout.WEST);
 
-        // Selector Bar
-        JPanel selectorBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
-        selectorBar.setOpaque(false);
+        // Aksi di pojok kanan atas sejajar dengan judul
+        btnSetSemuaHadir = new JButton("Set Semua Hadir");
+        btnSetSemuaHadir.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnSetSemuaHadir.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnSetSemuaHadir.setFocusPainted(false);
+        btnSetSemuaHadir.setEnabled(false);
+        btnSetSemuaHadir.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(203, 213, 225), 1, true),
+                BorderFactory.createEmptyBorder(6, 14, 6, 14)
+        ));
+        btnSetSemuaHadir.setBackground(Color.WHITE);
+        btnSetSemuaHadir.setForeground(new Color(51, 65, 85));
+        btnSetSemuaHadir.addActionListener(e -> setSemuaHadir());
+
+        btnSimpan = new JButton("Simpan Presensi");
+        btnSimpan.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnSimpan.setBackground(new Color(37, 99, 235));
+        btnSimpan.setForeground(Color.WHITE);
+        btnSimpan.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnSimpan.setFocusPainted(false);
+        btnSimpan.setEnabled(false);
+        btnSimpan.setBorder(BorderFactory.createEmptyBorder(6, 16, 6, 16));
+        btnSimpan.addActionListener(e -> simpanPresensi());
+
+        JPanel actionButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actionButtonPanel.setOpaque(false);
+        actionButtonPanel.add(btnSetSemuaHadir);
+        actionButtonPanel.add(btnSimpan);
+
+        titleRow.add(actionButtonPanel, BorderLayout.EAST);
+        topPanel.add(titleRow);
+        topPanel.add(Box.createVerticalStrut(10));
+
+        // Selector Row
+        JPanel selectorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        selectorRow.setOpaque(false);
 
         JLabel lblPilih = new JLabel("Pilih Jadwal Latihan:");
         lblPilih.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -117,56 +150,33 @@ public class PresensiPanel extends JPanel {
         btnMuat = new JButton("Muat Lembar Presensi");
         btnMuat.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnMuat.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnMuat.setFocusPainted(false);
         btnMuat.addActionListener(e -> onJadwalSelected());
 
-        selectorBar.add(lblPilih);
-        selectorBar.add(cmbJadwal);
-        selectorBar.add(btnMuat);
+        selectorRow.add(lblPilih);
+        selectorRow.add(cmbJadwal);
+        selectorRow.add(btnMuat);
 
-        // Info Badge Box
+        topPanel.add(selectorRow);
+        topPanel.add(Box.createVerticalStrut(10));
+
+        // Detail Label
         lblDetailJadwal = new JLabel("Silakan pilih sesi jadwal latihan di atas.");
         lblDetailJadwal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblDetailJadwal.setForeground(new Color(71, 85, 105));
 
-        JPanel detailPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 4));
+        JPanel detailPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         detailPanel.setOpaque(false);
         detailPanel.add(lblDetailJadwal);
+        topPanel.add(detailPanel);
 
-        topContainer.add(titleRow);
-        topContainer.add(Box.createVerticalStrut(10));
-        topContainer.add(selectorBar);
-        topContainer.add(detailPanel);
+        add(topPanel, BorderLayout.NORTH);
 
-        add(topContainer, BorderLayout.NORTH);
-
-        // 2. Toolbar Cepat (Set Hadir & Simpan)
-        JPanel actionToolbar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 8));
-        actionToolbar.setBackground(new Color(248, 250, 252));
-        actionToolbar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
-
-        btnSetSemuaHadir = new JButton("✅ Set Semua Hadir");
-        btnSetSemuaHadir.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnSetSemuaHadir.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnSetSemuaHadir.setEnabled(false);
-        btnSetSemuaHadir.addActionListener(e -> setSemuaHadir());
-
-        btnSimpan = new JButton("💾 Simpan Presensi");
-        btnSimpan.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnSimpan.setBackground(new Color(37, 99, 235));
-        btnSimpan.setForeground(Color.WHITE);
-        btnSimpan.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnSimpan.setEnabled(false);
-        btnSimpan.addActionListener(e -> simpanPresensi());
-
-        actionToolbar.add(btnSetSemuaHadir);
-        actionToolbar.add(btnSimpan);
-
-        // 3. Tabel Presensi
+        // 2. Table Panel
         String[] columnNames = {"No", "ID Anggota", "Nama Anggota", "Kategori", "Subkelompok", "Status Kehadiran", "Keterangan"};
         modelPresensi = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
-                // Kolom Status Kehadiran (5) dan Keterangan (6) dapat diedit
                 return col == 5 || col == 6;
             }
 
@@ -186,14 +196,14 @@ public class PresensiPanel extends JPanel {
         tblPresensi.setShowGrid(true);
         tblPresensi.setGridColor(new Color(241, 245, 249));
 
-        // Column widths
-        tblPresensi.getColumnModel().getColumn(0).setPreferredWidth(45);
-        tblPresensi.getColumnModel().getColumn(1).setPreferredWidth(80);
-        tblPresensi.getColumnModel().getColumn(2).setPreferredWidth(200);
-        tblPresensi.getColumnModel().getColumn(3).setPreferredWidth(120);
-        tblPresensi.getColumnModel().getColumn(4).setPreferredWidth(120);
-        tblPresensi.getColumnModel().getColumn(5).setPreferredWidth(180);
-        tblPresensi.getColumnModel().getColumn(6).setPreferredWidth(220);
+        // Column widths - reduced to fit sidebar-collapsed viewport
+        tblPresensi.getColumnModel().getColumn(0).setPreferredWidth(40);
+        tblPresensi.getColumnModel().getColumn(1).setPreferredWidth(70);
+        tblPresensi.getColumnModel().getColumn(2).setPreferredWidth(160);
+        tblPresensi.getColumnModel().getColumn(3).setPreferredWidth(100);
+        tblPresensi.getColumnModel().getColumn(4).setPreferredWidth(100);
+        tblPresensi.getColumnModel().getColumn(5).setPreferredWidth(140);
+        tblPresensi.getColumnModel().getColumn(6).setPreferredWidth(180);
 
         // Center renderers
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
@@ -209,11 +219,9 @@ public class PresensiPanel extends JPanel {
 
         tblPresensi.getModel().addTableModelListener(e -> updateStatistikLive());
 
-        JPanel centerPanel = new JPanel(new BorderLayout());
-        centerPanel.add(actionToolbar, BorderLayout.NORTH);
-        centerPanel.add(new JScrollPane(tblPresensi), BorderLayout.CENTER);
-
-        add(centerPanel, BorderLayout.CENTER);
+        JScrollPane scrollTable = new JScrollPane(tblPresensi);
+        scrollTable.setBorder(BorderFactory.createEmptyBorder(12, 24, 12, 24));
+        add(scrollTable, BorderLayout.CENTER);
 
         // 4. Bottom Summary Bar
         JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 10));
@@ -224,27 +232,30 @@ public class PresensiPanel extends JPanel {
         lblStatTotal.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblStatTotal.setForeground(new Color(30, 41, 59));
 
-        lblStatHadir = new JLabel("● Hadir: 0");
+        lblStatHadir = new JLabel("Hadir: 0");
         lblStatHadir.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblStatHadir.setForeground(new Color(22, 163, 74));
 
-        lblStatIzin = new JLabel("● Izin: 0");
+        lblStatIzin = new JLabel("Izin: 0");
         lblStatIzin.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblStatIzin.setForeground(new Color(37, 99, 235));
 
-        lblStatSakit = new JLabel("● Sakit: 0");
+        lblStatSakit = new JLabel("Sakit: 0");
         lblStatSakit.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblStatSakit.setForeground(new Color(202, 138, 4));
 
-        lblStatAlpa = new JLabel("● Alpa: 0");
+        lblStatAlpa = new JLabel("Alpa: 0");
         lblStatAlpa.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblStatAlpa.setForeground(new Color(220, 38, 38));
 
         bottomBar.add(lblStatTotal);
         bottomBar.add(new JLabel("|"));
         bottomBar.add(lblStatHadir);
+        bottomBar.add(new JLabel("|"));
         bottomBar.add(lblStatIzin);
+        bottomBar.add(new JLabel("|"));
         bottomBar.add(lblStatSakit);
+        bottomBar.add(new JLabel("|"));
         bottomBar.add(lblStatAlpa);
 
         add(bottomBar, BorderLayout.SOUTH);
@@ -287,7 +298,7 @@ public class PresensiPanel extends JPanel {
         String jam = (j.getJamMulai() != null ? j.getJamMulai().toString() : "--:--") + " - " +
                      (j.getJamSelesai() != null ? j.getJamSelesai().toString() : "--:--");
         String sasaran = j.getNamaKategori() + (j.getNamaSubkelompok() != null && !j.getNamaSubkelompok().equals("-") ? " (" + j.getNamaSubkelompok() + ")" : "");
-        lblDetailJadwal.setText(String.format("📅 %s | ⏰ %s | 👥 Sasaran: %s | 📍 Lokasi: %s",
+        lblDetailJadwal.setText(String.format("%s | %s | Sasaran: %s | Lokasi: %s",
                 j.getTanggal(), jam, sasaran, j.getLokasi() != null ? j.getLokasi() : "-"));
 
         loadLembarPresensi(j.getId());
@@ -352,14 +363,13 @@ public class PresensiPanel extends JPanel {
         }
 
         lblStatTotal.setText("Total Peserta: " + total);
-        lblStatHadir.setText("● Hadir: " + hadir);
-        lblStatIzin.setText("● Izin: " + izin);
-        lblStatSakit.setText("● Sakit: " + sakit);
-        lblStatAlpa.setText("● Alpa: " + alpa);
+        lblStatHadir.setText("Hadir: " + hadir);
+        lblStatIzin.setText("Izin: " + izin);
+        lblStatSakit.setText("Sakit: " + sakit);
+        lblStatAlpa.setText("Alpa: " + alpa);
     }
 
     private void simpanPresensi() {
-        // Pastikan cell editor yang sedang aktif di-stop editing
         if (tblPresensi.isEditing()) {
             tblPresensi.getCellEditor().stopCellEditing();
         }
@@ -428,27 +438,28 @@ public class PresensiPanel extends JPanel {
                                                        boolean hasFocus, int row, int column) {
             JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             lbl.setHorizontalAlignment(CENTER);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            lbl.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            lbl.setOpaque(true);
 
             if (value instanceof StatusHadir status) {
                 lbl.setText("  " + status.getLabel() + "  ");
-                lbl.setOpaque(true);
-
                 if (!isSelected) {
                     switch (status) {
                         case HADIR -> {
-                            lbl.setBackground(new Color(220, 252, 231)); // Soft green
+                            lbl.setBackground(new Color(220, 252, 231));
                             lbl.setForeground(new Color(21, 128, 61));
                         }
                         case IZIN -> {
-                            lbl.setBackground(new Color(238, 242, 255)); // Soft blue
+                            lbl.setBackground(new Color(238, 242, 255));
                             lbl.setForeground(new Color(37, 99, 235));
                         }
                         case SAKIT -> {
-                            lbl.setBackground(new Color(254, 243, 199)); // Soft amber
+                            lbl.setBackground(new Color(254, 243, 199));
                             lbl.setForeground(new Color(180, 83, 9));
                         }
                         case TANPA_KETERANGAN -> {
-                            lbl.setBackground(new Color(254, 226, 226)); // Soft red
+                            lbl.setBackground(new Color(254, 226, 226));
                             lbl.setForeground(new Color(220, 38, 38));
                         }
                     }

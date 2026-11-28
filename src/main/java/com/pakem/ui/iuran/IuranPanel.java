@@ -8,6 +8,8 @@ import com.pakem.model.enums.StatusIuranWarna;
 import com.pakem.service.interfaces.IIuranService;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -21,6 +23,8 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.math.BigDecimal;
@@ -32,7 +36,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Panel untuk manajemen Iuran Bulanan (Fase 7).
+ * Panel untuk manajemen Iuran Bulanan.
+ * Layout standar: Header + Table + Footer Actions.
  */
 public class IuranPanel extends JPanel {
 
@@ -54,7 +59,6 @@ public class IuranPanel extends JPanel {
         this.currentUser = currentUser;
 
         setLayout(new BorderLayout());
-        setBorder(BorderFactory.createEmptyBorder(20, 24, 20, 24));
         setBackground(new Color(241, 245, 249));
 
         initComponents();
@@ -62,25 +66,45 @@ public class IuranPanel extends JPanel {
     }
 
     private void initComponents() {
-        // --- Header Section ---
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setOpaque(false);
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 16, 0));
+        // 1. Top Panel (Header & Toolbar)
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setBackground(Color.WHITE);
+        topPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
+                BorderFactory.createEmptyBorder(16, 24, 16, 24)
+        ));
 
-        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        titlePanel.setOpaque(false);
+        // Title Row
+        JPanel titleRow = new JPanel(new BorderLayout());
+        titleRow.setOpaque(false);
+
         JLabel lblTitle = new JLabel("Iuran Bulanan");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblTitle.setForeground(new Color(15, 23, 42));
-        titlePanel.add(lblTitle);
 
-        // Filter Periode
+        JLabel lblSubtitle = new JLabel("Pantau status pembayaran iuran bulanan anggota aktif per periode.");
+        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblSubtitle.setForeground(new Color(100, 116, 139));
+
+        JPanel titleTextPanel = new JPanel();
+        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
+        titleTextPanel.setOpaque(false);
+        titleTextPanel.add(lblTitle);
+        titleTextPanel.add(Box.createVerticalStrut(2));
+        titleTextPanel.add(lblSubtitle);
+
+        titleRow.add(titleTextPanel, BorderLayout.WEST);
+
+        // Filter Periode (Right)
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         filterPanel.setOpaque(false);
 
         String[] bulanNames = {"Januari", "Februari", "Maret", "April", "Mei", "Juni",
                                "Juli", "Agustus", "September", "Oktober", "November", "Desember"};
         cbBulan = new JComboBox<>(bulanNames);
+        cbBulan.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        cbBulan.setPreferredSize(new Dimension(140, 32));
         cbBulan.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
         cbBulan.addActionListener(e -> loadData());
 
@@ -90,6 +114,8 @@ public class IuranPanel extends JPanel {
             years[i] = currentYear - 2 + i;
         }
         cbTahun = new JComboBox<>(years);
+        cbTahun.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        cbTahun.setPreferredSize(new Dimension(80, 32));
         cbTahun.setSelectedItem(currentYear);
         cbTahun.addActionListener(e -> loadData());
 
@@ -97,12 +123,14 @@ public class IuranPanel extends JPanel {
         filterPanel.add(cbBulan);
         filterPanel.add(cbTahun);
 
-        headerPanel.add(titlePanel, BorderLayout.WEST);
-        headerPanel.add(filterPanel, BorderLayout.EAST);
-        add(headerPanel, BorderLayout.NORTH);
+        titleRow.add(filterPanel, BorderLayout.EAST);
+        topPanel.add(titleRow);
+        topPanel.add(Box.createVerticalStrut(14));
 
-        // --- Table Section ---
-        String[] columns = {"ID", "Indikator", "Nama Anggota", "Kategori/Kelompok", "Status", "Nominal", "Tgl Bayar", "Aksi"};
+        add(topPanel, BorderLayout.NORTH);
+
+        // 2. Table Section
+        String[] columns = {"ID", "Status", "Nama Anggota", "Kategori/Kelompok", "Status Bayar", "Nominal", "Tgl Bayar", "Aksi"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -111,21 +139,43 @@ public class IuranPanel extends JPanel {
         };
 
         tableIuran = new JTable(tableModel);
-        tableIuran.setRowHeight(35);
-        tableIuran.removeColumn(tableIuran.getColumnModel().getColumn(0)); // Sembunyikan ID Anggota
+        tableIuran.setRowHeight(36);
+        tableIuran.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tableIuran.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        tableIuran.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tableIuran.getTableHeader().setBackground(new Color(248, 250, 252));
+        tableIuran.getTableHeader().setForeground(new Color(71, 85, 105));
+        tableIuran.setShowGrid(true);
+        tableIuran.setGridColor(new Color(241, 245, 249));
 
-        // Cell Renderers
-        tableIuran.getColumnModel().getColumn(0).setCellRenderer(new ColorIndicatorRenderer());
-        tableIuran.getColumnModel().getColumn(3).setCellRenderer(new StatusRenderer());
+        // Hide ID column
+        tableIuran.removeColumn(tableIuran.getColumnModel().getColumn(0));
+
+        // Column widths
+        tableIuran.getColumnModel().getColumn(0).setPreferredWidth(90);   // Status pill
+        tableIuran.getColumnModel().getColumn(1).setPreferredWidth(180);  // Nama
+        tableIuran.getColumnModel().getColumn(2).setPreferredWidth(160);  // Kategori/Kelompok
+        tableIuran.getColumnModel().getColumn(3).setPreferredWidth(110);  // Status Bayar
+        tableIuran.getColumnModel().getColumn(4).setPreferredWidth(110);  // Nominal
+        tableIuran.getColumnModel().getColumn(5).setPreferredWidth(100);  // Tgl Bayar
+        tableIuran.getColumnModel().getColumn(6).setPreferredWidth(90);   // Aksi
+
+        // Cell Renderers - Status pill for indicator
+        tableIuran.getColumnModel().getColumn(0).setCellRenderer(new StatusPillRenderer());
+        // Status badge for Status Bayar
+        tableIuran.getColumnModel().getColumn(3).setCellRenderer(new StatusBayarRenderer());
 
         JScrollPane scrollPane = new JScrollPane(tableIuran);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240)));
+        scrollPane.setBorder(BorderFactory.createEmptyBorder(12, 24, 12, 24));
         add(scrollPane, BorderLayout.CENTER);
 
-        // --- Footer / Actions Section ---
-        JPanel footerPanel = new JPanel(new BorderLayout());
-        footerPanel.setOpaque(false);
-        footerPanel.setBorder(BorderFactory.createEmptyBorder(16, 0, 0, 0));
+        // 3. Bottom Summary & Actions
+        JPanel bottomBar = new JPanel(new BorderLayout());
+        bottomBar.setBackground(Color.WHITE);
+        bottomBar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)),
+                BorderFactory.createEmptyBorder(8, 24, 8, 24)
+        ));
 
         lblSummary = new JLabel("Memuat data...");
         lblSummary.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -134,18 +184,33 @@ public class IuranPanel extends JPanel {
         JPanel actionButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         actionButtons.setOpaque(false);
 
-        JButton btnBayar = new JButton("💰 Catat Pembayaran");
+        JButton btnBayar = new JButton("Catat Pembayaran");
+        btnBayar.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnBayar.setBackground(new Color(37, 99, 235));
+        btnBayar.setForeground(Color.WHITE);
+        btnBayar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnBayar.setFocusPainted(false);
+        btnBayar.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
         btnBayar.addActionListener(e -> handleBayar());
 
-        JButton btnBatal = new JButton("🔄 Batalkan Status");
+        JButton btnBatal = new JButton("Batalkan Status");
+        btnBatal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnBatal.setForeground(new Color(220, 38, 38));
+        btnBatal.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnBatal.setFocusPainted(false);
+        btnBatal.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(252, 165, 165), 1, true),
+                BorderFactory.createEmptyBorder(8, 14, 8, 14)
+        ));
+        btnBatal.setBackground(Color.WHITE);
         btnBatal.addActionListener(e -> handleBatal());
 
         actionButtons.add(btnBatal);
         actionButtons.add(btnBayar);
 
-        footerPanel.add(lblSummary, BorderLayout.WEST);
-        footerPanel.add(actionButtons, BorderLayout.EAST);
-        add(footerPanel, BorderLayout.SOUTH);
+        bottomBar.add(lblSummary, BorderLayout.WEST);
+        bottomBar.add(actionButtons, BorderLayout.EAST);
+        add(bottomBar, BorderLayout.SOUTH);
     }
 
     private void loadData() {
@@ -246,42 +311,67 @@ public class IuranPanel extends JPanel {
 
     // --- Inner Classes for Rendering ---
 
-    private static class ColorIndicatorRenderer extends DefaultTableCellRenderer {
+    /**
+     * Renderer pill status indikator (lingkaran kecil berwarna + teks).
+     */
+    private static class StatusPillRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            JLabel label = (JLabel) super.getTableCellRendererComponent(table, "  ", isSelected, hasFocus, row, column);
-            label.setOpaque(true);
+            JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+            panel.setOpaque(false);
+            if (isSelected) {
+                panel.setBackground(table.getSelectionBackground());
+            }
+
+            JLabel dot = new JLabel("●");
+            dot.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+            JLabel text = new JLabel();
+            text.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
             if (value instanceof StatusIuranWarna status) {
-                Color bg = switch (status) {
-                    case HIJAU -> new Color(34, 197, 94);
-                    case KUNING -> new Color(234, 179, 8);
-                    case MERAH -> new Color(239, 68, 68);
-                    case PUTIH -> Color.WHITE;
+                Color fg = switch (status) {
+                    case HIJAU -> new Color(22, 163, 74);
+                    case KUNING -> new Color(202, 138, 4);
+                    case MERAH -> new Color(220, 38, 38);
+                    case PUTIH -> new Color(148, 163, 184);
                 };
-                label.setBackground(bg);
-                label.setToolTipText(status.getLabel());
+                dot.setForeground(fg);
+                text.setForeground(fg);
+                text.setText(status.getLabel());
             }
-            return label;
+
+            panel.add(dot);
+            panel.add(text);
+            return panel;
         }
     }
 
-    private static class StatusRenderer extends DefaultTableCellRenderer {
+    /**
+     * Renderer badge untuk kolom Status Bayar (LUNAS / BELUM BAYAR).
+     */
+    private static class StatusBayarRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-            label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            lbl.setHorizontalAlignment(SwingConstants.CENTER);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            lbl.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            lbl.setOpaque(true);
 
             if (value instanceof StatusBayar status) {
-                label.setText(status.getLabel().toUpperCase());
-                if (status == StatusBayar.LUNAS) {
-                    label.setForeground(new Color(22, 163, 74));
-                } else {
-                    label.setForeground(new Color(71, 85, 105));
+                lbl.setText(status.getLabel().toUpperCase());
+                if (!isSelected) {
+                    if (status == StatusBayar.LUNAS) {
+                        lbl.setBackground(new Color(220, 252, 231));
+                        lbl.setForeground(new Color(21, 128, 61));
+                    } else {
+                        lbl.setBackground(new Color(254, 243, 199));
+                        lbl.setForeground(new Color(180, 83, 9));
+                    }
                 }
             }
-            return label;
+            return lbl;
         }
     }
 }

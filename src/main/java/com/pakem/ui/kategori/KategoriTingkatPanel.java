@@ -1,5 +1,6 @@
 package com.pakem.ui.kategori;
 
+import com.formdev.flatlaf.FlatClientProperties;
 import com.pakem.model.Anggota;
 import com.pakem.model.KategoriTingkat;
 import com.pakem.model.Subkelompok;
@@ -19,9 +20,11 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
@@ -30,8 +33,9 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +43,16 @@ import java.util.List;
  * Panel utama untuk Modul Kategori Tingkat, Subkelompok, dan Auto-Grouping.
  */
 public class KategoriTingkatPanel extends JPanel {
+
+    private static final Color GRID_LINE = new Color(241, 245, 249);
+    private static final Color TEXT_PRIMARY = new Color(15, 23, 42);
+    private static final Color TEXT_SECONDARY = new Color(100, 116, 139);
+    private static final Color ACCENT_BLUE = new Color(37, 99, 235);
+    private static final Color SELECTION_BG = new Color(239, 246, 255);
+    private static final Color SELECTION_FG = new Color(29, 78, 216);
+    private static final Color BG_CANVAS = new Color(248, 250, 252);
+    private static final Color BG_GAP = new Color(241, 245, 249);
+    private static final Color BORDER_SUBTLE = new Color(226, 232, 240);
 
     private final IKategoriService kategoriService;
     private final User currentUser;
@@ -73,6 +87,8 @@ public class KategoriTingkatPanel extends JPanel {
     private final List<Anggota> anggotaKategoriList = new ArrayList<>();
     private JButton btnPindahSub;
 
+    private JLabel lblFooterSummary;
+
     private KategoriTingkat selectedKategori = null;
     private int kapasitasAnjuran = 25;
 
@@ -86,13 +102,13 @@ public class KategoriTingkatPanel extends JPanel {
 
     private void initUI() {
         setLayout(new BorderLayout());
-        setBackground(new Color(241, 245, 249));
+        setBackground(Color.WHITE);
 
-        // 1. Top Bar Header
+        // 1. Top Bar Header (Seragam dengan Jadwal Latihan & Data Anggota)
         JPanel topBar = new JPanel(new BorderLayout());
         topBar.setBackground(Color.WHITE);
         topBar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
                 BorderFactory.createEmptyBorder(16, 24, 16, 24)
         ));
 
@@ -102,11 +118,11 @@ public class KategoriTingkatPanel extends JPanel {
 
         JLabel lblTitle = new JLabel("Master Kategori Tingkat & Subkelompok");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblTitle.setForeground(new Color(15, 23, 42));
+        lblTitle.setForeground(TEXT_PRIMARY);
 
         JLabel lblSubtitle = new JLabel("Kelola jenjang kemampuan tabuh, subkelompok latihan, serta pembagian merata anggota (Auto-Grouping).");
         lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblSubtitle.setForeground(new Color(100, 116, 139));
+        lblSubtitle.setForeground(TEXT_SECONDARY);
 
         titleTextPanel.add(lblTitle);
         titleTextPanel.add(Box.createVerticalStrut(2));
@@ -114,15 +130,27 @@ public class KategoriTingkatPanel extends JPanel {
 
         topBar.add(titleTextPanel, BorderLayout.WEST);
 
-        if (!currentUser.canManageKategoriTingkat()) {
-            JPanel bannerPelatih = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        // Auto-Grouping & Banner Pelatih (Top Right)
+        if (currentUser.canManageKategoriTingkat()) {
+            btnAutoGrouping = createPrimaryButton("Auto-Grouping (Bagi Rata)");
+            btnAutoGrouping.addActionListener(e -> runAutoGrouping());
+
+            JPanel autoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+            autoPanel.setOpaque(false);
+            autoPanel.add(btnAutoGrouping);
+            topBar.add(autoPanel, BorderLayout.EAST);
+        } else {
+            JPanel bannerPelatih = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
             bannerPelatih.setOpaque(false);
             JLabel lblPelatih = new JLabel("  Mode Pelatih: Hanya Melihat Struktur  ");
             lblPelatih.setFont(new Font("Segoe UI", Font.BOLD, 11));
             lblPelatih.setOpaque(true);
             lblPelatih.setBackground(new Color(254, 243, 199));
             lblPelatih.setForeground(new Color(180, 83, 9));
-            lblPelatih.setBorder(BorderFactory.createLineBorder(new Color(252, 211, 77), 1, true));
+            lblPelatih.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(252, 211, 77), 1, true),
+                    BorderFactory.createEmptyBorder(4, 8, 4, 8)
+            ));
             bannerPelatih.add(lblPelatih);
             topBar.add(bannerPelatih, BorderLayout.EAST);
         }
@@ -131,24 +159,25 @@ public class KategoriTingkatPanel extends JPanel {
 
         // 2. Split Pane (Left: Kategori, Right: Subkelompok & Anggota)
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(360);
-        splitPane.setDividerSize(6);
+        splitPane.setDividerLocation(380);
+        splitPane.setDividerSize(12);
         splitPane.setBorder(null);
+        splitPane.setBackground(BG_GAP);
+        splitPane.setOneTouchExpandable(false);
 
-        // Left Panel
         JPanel leftPanel = createLeftPanel();
         splitPane.setLeftComponent(leftPanel);
 
-        // Right Panel Container
         rightCardLayout = new CardLayout();
         rightContainer = new JPanel(rightCardLayout);
-        rightContainer.setBackground(new Color(241, 245, 249));
+        rightContainer.setBackground(Color.WHITE);
+        rightContainer.setBorder(BorderFactory.createLineBorder(BORDER_SUBTLE, 1));
 
         // Empty state view
-        JPanel emptyPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 150));
-        emptyPanel.setBackground(new Color(248, 250, 252));
+        JPanel emptyPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 160));
+        emptyPanel.setBackground(Color.WHITE);
         JLabel lblEmpty = new JLabel("Pilih salah satu kategori tingkat di sebelah kiri untuk melihat rincian subkelompok.");
-        lblEmpty.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+        lblEmpty.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblEmpty.setForeground(new Color(148, 163, 184));
         emptyPanel.add(lblEmpty);
         rightContainer.add(emptyPanel, CARD_EMPTY);
@@ -158,7 +187,27 @@ public class KategoriTingkatPanel extends JPanel {
         rightContainer.add(detailPanel, CARD_DETAIL);
 
         splitPane.setRightComponent(rightContainer);
-        add(splitPane, BorderLayout.CENTER);
+
+        // 3. Footer Ringkasan
+        JPanel footerBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 10));
+        footerBar.setBackground(Color.WHITE);
+        footerBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_SUBTLE));
+
+        lblFooterSummary = new JLabel("Total Kategori: 0  |  Total Subkelompok: 0");
+        lblFooterSummary.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblFooterSummary.setForeground(new Color(30, 41, 59));
+        footerBar.add(lblFooterSummary);
+
+        JPanel centerGapWrapper = new JPanel(new BorderLayout());
+        centerGapWrapper.setBackground(BG_GAP);
+        centerGapWrapper.setBorder(BorderFactory.createEmptyBorder(16, 24, 16, 24));
+        centerGapWrapper.add(splitPane, BorderLayout.CENTER);
+
+        JPanel mainWrapper = new JPanel(new BorderLayout());
+        mainWrapper.setBackground(BG_GAP);
+        mainWrapper.add(centerGapWrapper, BorderLayout.CENTER);
+        mainWrapper.add(footerBar, BorderLayout.SOUTH);
+        add(mainWrapper, BorderLayout.CENTER);
 
         rightCardLayout.show(rightContainer, CARD_EMPTY);
     }
@@ -166,22 +215,64 @@ public class KategoriTingkatPanel extends JPanel {
     private JPanel createLeftPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, new Color(226, 232, 240)));
+        panel.setBorder(BorderFactory.createLineBorder(BORDER_SUBTLE, 1));
 
-        // Header Left
+        // Top section: Header judul + baris toolbar terpisah agar rapi dan sejajar
+        JPanel leftTopWrapper = new JPanel();
+        leftTopWrapper.setLayout(new BoxLayout(leftTopWrapper, BoxLayout.Y_AXIS));
+        leftTopWrapper.setBackground(Color.WHITE);
+
         JPanel headerLeft = new JPanel(new BorderLayout());
-        headerLeft.setBackground(new Color(248, 250, 252));
+        headerLeft.setBackground(Color.WHITE);
         headerLeft.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
-                BorderFactory.createEmptyBorder(12, 16, 12, 16)
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
+                BorderFactory.createEmptyBorder(14, 20, 14, 20)
         ));
 
-        JLabel lblLeftTitle = new JLabel("Daftar Jenjang / Kategori");
-        lblLeftTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lblLeftTitle.setForeground(new Color(30, 41, 59));
-        headerLeft.add(lblLeftTitle, BorderLayout.WEST);
+        JPanel leftTitleBox = new JPanel();
+        leftTitleBox.setLayout(new BoxLayout(leftTitleBox, BoxLayout.Y_AXIS));
+        leftTitleBox.setOpaque(false);
 
-        panel.add(headerLeft, BorderLayout.NORTH);
+        JLabel lblLeftTitle = new JLabel("Daftar Jenjang / Kategori");
+        lblLeftTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lblLeftTitle.setForeground(TEXT_PRIMARY);
+
+        JLabel lblLeftSub = new JLabel("Pilih jenjang untuk mengatur subkelompok");
+        lblLeftSub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblLeftSub.setForeground(TEXT_SECONDARY);
+
+        leftTitleBox.add(lblLeftTitle);
+        leftTitleBox.add(Box.createVerticalStrut(2));
+        leftTitleBox.add(lblLeftSub);
+        headerLeft.add(leftTitleBox, BorderLayout.WEST);
+        leftTopWrapper.add(headerLeft);
+
+        if (currentUser.canManageKategoriTingkat()) {
+            JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+            leftToolbar.setBackground(BG_CANVAS);
+            leftToolbar.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
+                    BorderFactory.createEmptyBorder(2, 12, 2, 12)
+            ));
+
+            btnTambahKategori = createPrimaryButton("+ Tambah");
+            btnTambahKategori.addActionListener(e -> openAddKategoriDialog());
+
+            btnUbahKategori = createSecondaryButton("Ubah");
+            btnUbahKategori.setEnabled(false);
+            btnUbahKategori.addActionListener(e -> openEditKategoriDialog());
+
+            btnHapusKategori = createDangerButton("Hapus");
+            btnHapusKategori.setEnabled(false);
+            btnHapusKategori.addActionListener(e -> deleteKategori());
+
+            leftToolbar.add(btnTambahKategori);
+            leftToolbar.add(btnUbahKategori);
+            leftToolbar.add(btnHapusKategori);
+            leftTopWrapper.add(leftToolbar);
+        }
+
+        panel.add(leftTopWrapper, BorderLayout.NORTH);
 
         // Table Kategori
         String[] columns = {"Urut", "Nama Kategori", "Anggota"};
@@ -193,25 +284,28 @@ public class KategoriTingkatPanel extends JPanel {
         };
 
         tblKategori = new JTable(modelKategori);
-        tblKategori.setRowHeight(34);
-        tblKategori.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tblKategori.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        tblKategori.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        tblKategori.getTableHeader().setBackground(new Color(248, 250, 252));
+        styleTable(tblKategori);
 
-        tblKategori.getColumnModel().getColumn(0).setPreferredWidth(45);
-        tblKategori.getColumnModel().getColumn(1).setPreferredWidth(170);
-        tblKategori.getColumnModel().getColumn(2).setPreferredWidth(65);
+        tblKategori.getColumnModel().getColumn(0).setPreferredWidth(55);
+        tblKategori.getColumnModel().getColumn(0).setMaxWidth(65);
+        tblKategori.getColumnModel().getColumn(1).setPreferredWidth(210);
+        tblKategori.getColumnModel().getColumn(2).setPreferredWidth(75);
+        tblKategori.getColumnModel().getColumn(2).setMaxWidth(85);
 
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+        DefaultTableCellRenderer centerRenderer = createPaddedRenderer(SwingConstants.CENTER);
         tblKategori.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+        tblKategori.getColumnModel().getColumn(1).setCellRenderer(createPaddedRenderer(SwingConstants.LEFT));
         tblKategori.getColumnModel().getColumn(2).setCellRenderer(centerRenderer);
 
         tblKategori.getSelectionModel().addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) return;
             boolean hasSelection = tblKategori.getSelectedRow() != -1;
-            btnUbahKategori.setEnabled(hasSelection && currentUser.canManageKategoriTingkat());
-            btnHapusKategori.setEnabled(hasSelection && currentUser.canManageKategoriTingkat());
+            if (btnUbahKategori != null) {
+                btnUbahKategori.setEnabled(hasSelection && currentUser.canManageKategoriTingkat());
+            }
+            if (btnHapusKategori != null) {
+                btnHapusKategori.setEnabled(hasSelection && currentUser.canManageKategoriTingkat());
+            }
             if (hasSelection) {
                 int row = tblKategori.getSelectedRow();
                 if (row >= 0 && row < kategoriList.size()) {
@@ -222,55 +316,23 @@ public class KategoriTingkatPanel extends JPanel {
         });
 
         JScrollPane scrollTable = new JScrollPane(tblKategori);
-        scrollTable.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        scrollTable.setBorder(BorderFactory.createEmptyBorder());
+        scrollTable.getViewport().setBackground(Color.WHITE);
         panel.add(scrollTable, BorderLayout.CENTER);
 
-        // Action Buttons Bottom
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 10));
-        actionPanel.setBackground(Color.WHITE);
-        actionPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)));
-
-        btnTambahKategori = new JButton("+ Tambah");
-        btnTambahKategori.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnTambahKategori.setBackground(new Color(37, 99, 235));
-        btnTambahKategori.setForeground(Color.WHITE);
-        btnTambahKategori.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnTambahKategori.setVisible(currentUser.canManageKategoriTingkat());
-        btnTambahKategori.addActionListener(e -> openAddKategoriDialog());
-
-        btnUbahKategori = new JButton("Ubah");
-        btnUbahKategori.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnUbahKategori.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnUbahKategori.setEnabled(false);
-        btnUbahKategori.setVisible(currentUser.canManageKategoriTingkat());
-        btnUbahKategori.addActionListener(e -> openEditKategoriDialog());
-
-        btnHapusKategori = new JButton("Hapus");
-        btnHapusKategori.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnHapusKategori.setForeground(new Color(220, 38, 38));
-        btnHapusKategori.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnHapusKategori.setEnabled(false);
-        btnHapusKategori.setVisible(currentUser.canManageKategoriTingkat());
-        btnHapusKategori.addActionListener(e -> deleteKategori());
-
-        actionPanel.add(btnTambahKategori);
-        actionPanel.add(btnUbahKategori);
-        actionPanel.add(btnHapusKategori);
-
-        panel.add(actionPanel, BorderLayout.SOUTH);
         return panel;
     }
 
     private JPanel createRightDetailPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(new Color(248, 250, 252));
+        panel.setBackground(Color.WHITE);
 
-        // Header Kategori Terpilih
+        // Header Kategori Terpilih (Tinggi selaras dengan headerLeft)
         JPanel headerDetail = new JPanel(new BorderLayout());
         headerDetail.setBackground(Color.WHITE);
         headerDetail.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
-                BorderFactory.createEmptyBorder(14, 20, 14, 20)
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
+                BorderFactory.createEmptyBorder(14, 24, 14, 24)
         ));
 
         JPanel titleSubPanel = new JPanel();
@@ -278,48 +340,28 @@ public class KategoriTingkatPanel extends JPanel {
         titleSubPanel.setOpaque(false);
 
         lblSelectedKategoriTitle = new JLabel("Kategori: -");
-        lblSelectedKategoriTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        lblSelectedKategoriTitle.setForeground(new Color(30, 41, 59));
+        lblSelectedKategoriTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lblSelectedKategoriTitle.setForeground(TEXT_PRIMARY);
 
         lblKapasitasAnjuran = new JLabel("Kapasitas Anjuran: 25 orang / kelompok");
         lblKapasitasAnjuran.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblKapasitasAnjuran.setForeground(new Color(100, 116, 139));
+        lblKapasitasAnjuran.setForeground(TEXT_SECONDARY);
 
         titleSubPanel.add(lblSelectedKategoriTitle);
         titleSubPanel.add(Box.createVerticalStrut(2));
         titleSubPanel.add(lblKapasitasAnjuran);
 
         headerDetail.add(titleSubPanel, BorderLayout.WEST);
-
-        // Auto-Grouping & Sub Actions (Top Right)
-        JPanel actionAutoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        actionAutoPanel.setOpaque(false);
-
-        btnAutoGrouping = new JButton("⚡ Auto-Grouping (Bagi Rata)");
-        btnAutoGrouping.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnAutoGrouping.setBackground(new Color(16, 185, 129)); // Emerald green
-        btnAutoGrouping.setForeground(Color.WHITE);
-        btnAutoGrouping.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnAutoGrouping.setFocusPainted(false);
-        btnAutoGrouping.setVisible(currentUser.canManageKategoriTingkat());
-        btnAutoGrouping.addActionListener(e -> runAutoGrouping());
-
-        actionAutoPanel.add(btnAutoGrouping);
-        headerDetail.add(actionAutoPanel, BorderLayout.EAST);
-
         panel.add(headerDetail, BorderLayout.NORTH);
 
-        // Tabbed Pane: Tab 1 (Daftar Subkelompok), Tab 2 (Daftar Anggota Kategori)
+        // Tabbed Pane
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tabbedPane.setBackground(Color.WHITE);
+        tabbedPane.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_AREA_INSETS, new java.awt.Insets(0, 16, 0, 16));
 
-        // Tab 1: Subkelompok
-        JPanel tabSubkelompok = createTabSubkelompok();
-        tabbedPane.addTab("Daftar Subkelompok", tabSubkelompok);
-
-        // Tab 2: Anggota Kategori
-        JPanel tabAnggota = createTabAnggotaKategori();
-        tabbedPane.addTab("Penempatan Anggota Kategori", tabAnggota);
+        tabbedPane.addTab("Daftar Subkelompok", createTabSubkelompok());
+        tabbedPane.addTab("Penempatan Anggota Kategori", createTabAnggotaKategori());
 
         panel.add(tabbedPane, BorderLayout.CENTER);
         return panel;
@@ -327,41 +369,33 @@ public class KategoriTingkatPanel extends JPanel {
 
     private JPanel createTabSubkelompok() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(new Color(248, 250, 252));
+        panel.setBackground(Color.WHITE);
 
-        // Toolbar Subkelompok
-        JPanel tbSub = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
-        tbSub.setBackground(Color.WHITE);
-        tbSub.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
+        if (currentUser.canManageKategoriTingkat()) {
+            JPanel tbSub = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+            tbSub.setBackground(BG_CANVAS);
+            tbSub.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
+                    BorderFactory.createEmptyBorder(2, 16, 2, 16)
+            ));
 
-        btnTambahSub = new JButton("+ Tambah Subkelompok");
-        btnTambahSub.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnTambahSub.setBackground(new Color(37, 99, 235));
-        btnTambahSub.setForeground(Color.WHITE);
-        btnTambahSub.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnTambahSub.setVisible(currentUser.canManageKategoriTingkat());
-        btnTambahSub.addActionListener(e -> openAddSubkelompokDialog());
+            btnTambahSub = createPrimaryButton("+ Tambah Subkelompok");
+            btnTambahSub.addActionListener(e -> openAddSubkelompokDialog());
 
-        btnUbahSub = new JButton("Ubah Nama");
-        btnUbahSub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnUbahSub.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnUbahSub.setEnabled(false);
-        btnUbahSub.setVisible(currentUser.canManageKategoriTingkat());
-        btnUbahSub.addActionListener(e -> openEditSubkelompokDialog());
+            btnUbahSub = createSecondaryButton("Ubah Nama");
+            btnUbahSub.setEnabled(false);
+            btnUbahSub.addActionListener(e -> openEditSubkelompokDialog());
 
-        btnHapusSub = new JButton("Hapus Subkelompok");
-        btnHapusSub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnHapusSub.setForeground(new Color(220, 38, 38));
-        btnHapusSub.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnHapusSub.setEnabled(false);
-        btnHapusSub.setVisible(currentUser.canManageKategoriTingkat());
-        btnHapusSub.addActionListener(e -> deleteSubkelompok());
+            btnHapusSub = createDangerButton("Hapus Subkelompok");
+            btnHapusSub.setEnabled(false);
+            btnHapusSub.addActionListener(e -> deleteSubkelompok());
 
-        tbSub.add(btnTambahSub);
-        tbSub.add(btnUbahSub);
-        tbSub.add(btnHapusSub);
+            tbSub.add(btnTambahSub);
+            tbSub.add(btnUbahSub);
+            tbSub.add(btnHapusSub);
 
-        panel.add(tbSub, BorderLayout.NORTH);
+            panel.add(tbSub, BorderLayout.NORTH);
+        }
 
         // Table Subkelompok
         String[] cols = {"Nama Subkelompok", "Jumlah Anggota", "Status Kapasitas (Anjuran: 25)"};
@@ -373,28 +407,26 @@ public class KategoriTingkatPanel extends JPanel {
         };
 
         tblSubkelompok = new JTable(modelSubkelompok);
-        tblSubkelompok.setRowHeight(36);
-        tblSubkelompok.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tblSubkelompok.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        tblSubkelompok.getTableHeader().setBackground(new Color(248, 250, 252));
+        styleTable(tblSubkelompok);
 
-        tblSubkelompok.getColumnModel().getColumn(0).setPreferredWidth(160);
-        tblSubkelompok.getColumnModel().getColumn(1).setPreferredWidth(110);
-        tblSubkelompok.getColumnModel().getColumn(2).setPreferredWidth(260);
+        tblSubkelompok.getColumnModel().getColumn(0).setPreferredWidth(200);
+        tblSubkelompok.getColumnModel().getColumn(1).setPreferredWidth(140);
+        tblSubkelompok.getColumnModel().getColumn(2).setPreferredWidth(280);
 
-        DefaultTableCellRenderer centerR = new DefaultTableCellRenderer();
-        centerR.setHorizontalAlignment(JLabel.CENTER);
-        tblSubkelompok.getColumnModel().getColumn(1).setCellRenderer(centerR);
-        tblSubkelompok.getColumnModel().getColumn(2).setCellRenderer(new KapasitasBadgeRenderer());
+        tblSubkelompok.getColumnModel().getColumn(0).setCellRenderer(createPaddedRenderer(SwingConstants.LEFT));
+        tblSubkelompok.getColumnModel().getColumn(1).setCellRenderer(createPaddedRenderer(SwingConstants.CENTER));
+        tblSubkelompok.getColumnModel().getColumn(2).setCellRenderer(new KapasitasPillRenderer());
 
         tblSubkelompok.getSelectionModel().addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) return;
             boolean has = tblSubkelompok.getSelectedRow() != -1;
-            btnUbahSub.setEnabled(has && currentUser.canManageKategoriTingkat());
-            btnHapusSub.setEnabled(has && currentUser.canManageKategoriTingkat());
+            if (btnUbahSub != null) btnUbahSub.setEnabled(has && currentUser.canManageKategoriTingkat());
+            if (btnHapusSub != null) btnHapusSub.setEnabled(has && currentUser.canManageKategoriTingkat());
         });
 
         JScrollPane scroll = new JScrollPane(tblSubkelompok);
-        scroll.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(Color.WHITE);
         panel.add(scroll, BorderLayout.CENTER);
 
         return panel;
@@ -402,28 +434,28 @@ public class KategoriTingkatPanel extends JPanel {
 
     private JPanel createTabAnggotaKategori() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(new Color(248, 250, 252));
+        panel.setBackground(Color.WHITE);
 
-        // Toolbar Anggota Kategori
         JPanel tbAnggota = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
-        tbAnggota.setBackground(Color.WHITE);
-        tbAnggota.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
+        tbAnggota.setBackground(BG_CANVAS);
+        tbAnggota.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
+                BorderFactory.createEmptyBorder(2, 16, 2, 16)
+        ));
 
-        btnPindahSub = new JButton("Pindahkan Subkelompok...");
-        btnPindahSub.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnPindahSub.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnPindahSub = createPrimaryButton("Pindahkan Subkelompok...");
         btnPindahSub.setEnabled(false);
         btnPindahSub.setVisible(currentUser.canManageKategoriTingkat());
         btnPindahSub.addActionListener(e -> openPindahSubDialog());
 
-        JButton btnRefreshAnggota = new JButton("Refresh Daftar");
-        btnRefreshAnggota.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnRefreshAnggota.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton btnRefreshAnggota = createSecondaryButton("Refresh Daftar");
         btnRefreshAnggota.addActionListener(e -> {
             if (selectedKategori != null) loadRightDetail(selectedKategori);
         });
 
-        tbAnggota.add(btnPindahSub);
+        if (currentUser.canManageKategoriTingkat()) {
+            tbAnggota.add(btnPindahSub);
+        }
         tbAnggota.add(btnRefreshAnggota);
 
         panel.add(tbAnggota, BorderLayout.NORTH);
@@ -438,28 +470,28 @@ public class KategoriTingkatPanel extends JPanel {
         };
 
         tblAnggotaKategori = new JTable(modelAnggotaKategori);
-        tblAnggotaKategori.setRowHeight(34);
-        tblAnggotaKategori.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tblAnggotaKategori.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        tblAnggotaKategori.getTableHeader().setBackground(new Color(248, 250, 252));
+        styleTable(tblAnggotaKategori);
 
-        tblAnggotaKategori.getColumnModel().getColumn(0).setPreferredWidth(50);
-        tblAnggotaKategori.getColumnModel().getColumn(1).setPreferredWidth(200);
-        tblAnggotaKategori.getColumnModel().getColumn(2).setPreferredWidth(100);
-        tblAnggotaKategori.getColumnModel().getColumn(3).setPreferredWidth(160);
+        tblAnggotaKategori.getColumnModel().getColumn(0).setPreferredWidth(65);
+        tblAnggotaKategori.getColumnModel().getColumn(0).setMaxWidth(80);
+        tblAnggotaKategori.getColumnModel().getColumn(1).setPreferredWidth(240);
+        tblAnggotaKategori.getColumnModel().getColumn(2).setPreferredWidth(120);
+        tblAnggotaKategori.getColumnModel().getColumn(3).setPreferredWidth(180);
 
-        DefaultTableCellRenderer centerR = new DefaultTableCellRenderer();
-        centerR.setHorizontalAlignment(JLabel.CENTER);
-        tblAnggotaKategori.getColumnModel().getColumn(0).setCellRenderer(centerR);
-        tblAnggotaKategori.getColumnModel().getColumn(2).setCellRenderer(centerR);
+        tblAnggotaKategori.getColumnModel().getColumn(0).setCellRenderer(createPaddedRenderer(SwingConstants.CENTER));
+        tblAnggotaKategori.getColumnModel().getColumn(1).setCellRenderer(createPaddedRenderer(SwingConstants.LEFT));
+        tblAnggotaKategori.getColumnModel().getColumn(2).setCellRenderer(new StatusAnggotaPillRenderer());
+        tblAnggotaKategori.getColumnModel().getColumn(3).setCellRenderer(createPaddedRenderer(SwingConstants.LEFT));
 
         tblAnggotaKategori.getSelectionModel().addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) return;
             boolean has = tblAnggotaKategori.getSelectedRow() != -1;
-            btnPindahSub.setEnabled(has && currentUser.canManageKategoriTingkat());
+            if (btnPindahSub != null) btnPindahSub.setEnabled(has && currentUser.canManageKategoriTingkat());
         });
 
         JScrollPane scroll = new JScrollPane(tblAnggotaKategori);
-        scroll.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(Color.WHITE);
         panel.add(scroll, BorderLayout.CENTER);
 
         return panel;
@@ -486,7 +518,9 @@ public class KategoriTingkatPanel extends JPanel {
             if (!kategoriList.isEmpty()) {
                 tblKategori.setRowSelectionInterval(0, 0);
             } else {
+                selectedKategori = null;
                 rightCardLayout.show(rightContainer, CARD_EMPTY);
+                updateFooterSummary();
             }
 
         } catch (Exception ex) {
@@ -497,6 +531,7 @@ public class KategoriTingkatPanel extends JPanel {
     private void loadRightDetail(KategoriTingkat kat) {
         if (kat == null) {
             rightCardLayout.show(rightContainer, CARD_EMPTY);
+            updateFooterSummary();
             return;
         }
 
@@ -515,7 +550,7 @@ public class KategoriTingkatPanel extends JPanel {
                 int count = kategoriService.getJumlahAnggotaSubkelompok(s.getId());
                 String statusKapasitas;
                 if (count > kapasitasAnjuran) {
-                    statusKapasitas = "OVER:" + count + "/" + kapasitasAnjuran + " orang (Melebihi Kapasitas Anjuran)";
+                    statusKapasitas = "OVER:" + count + "/" + kapasitasAnjuran + " orang (Melebihi Kapasitas)";
                 } else if (count == 0) {
                     statusKapasitas = "EMPTY:Belum ada anggota";
                 } else {
@@ -531,6 +566,8 @@ public class KategoriTingkatPanel extends JPanel {
         } catch (Exception ex) {
             System.err.println("Gagal memuat subkelompok: " + ex.getMessage());
         }
+
+        updateFooterSummary();
 
         // 2. Muat Anggota di Kategori Ini
         modelAnggotaKategori.setRowCount(0);
@@ -549,6 +586,12 @@ public class KategoriTingkatPanel extends JPanel {
             }
         } catch (Exception ex) {
             System.err.println("Gagal memuat anggota kategori: " + ex.getMessage());
+        }
+    }
+
+    private void updateFooterSummary() {
+        if (lblFooterSummary != null) {
+            lblFooterSummary.setText("Total Kategori: " + kategoriList.size() + "  |  Total Subkelompok: " + subkelompokList.size());
         }
     }
 
@@ -678,35 +721,148 @@ public class KategoriTingkatPanel extends JPanel {
         }
     }
 
-    /**
-     * Renderer badge khusus untuk Status Kapasitas Subkelompok.
-     */
-    private static class KapasitasBadgeRenderer extends DefaultTableCellRenderer {
+    // --- UI Helpers ---
+
+    private JButton createPrimaryButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setBackground(ACCENT_BLUE);
+        btn.setForeground(Color.WHITE);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setFocusPainted(false);
+        btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; margin: 5,14,5,14");
+        return btn;
+    }
+
+    private JButton createSecondaryButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btn.setBackground(Color.WHITE);
+        btn.setForeground(new Color(51, 65, 85));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setFocusPainted(false);
+        btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; borderColor: #CBD5E1; margin: 5,12,5,12");
+        return btn;
+    }
+
+    private JButton createDangerButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btn.setBackground(Color.WHITE);
+        btn.setForeground(new Color(220, 38, 38));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setFocusPainted(false);
+        btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; borderColor: #FECACA; margin: 5,12,5,12");
+        return btn;
+    }
+
+    private void styleTable(JTable table) {
+        table.setRowHeight(40);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        table.setForeground(TEXT_PRIMARY);
+        table.setBackground(Color.WHITE);
+        table.setFillsViewportHeight(true);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setSelectionBackground(SELECTION_BG);
+        table.setSelectionForeground(SELECTION_FG);
+        table.setShowHorizontalLines(true);
+        table.setShowVerticalLines(false);
+        table.setGridColor(GRID_LINE);
+        table.setIntercellSpacing(new Dimension(0, 1));
+
+        JTableHeader header = table.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        header.setBackground(BG_CANVAS);
+        header.setForeground(new Color(71, 85, 105));
+        header.setPreferredSize(new Dimension(header.getPreferredSize().width, 36));
+        header.setReorderingAllowed(false);
+    }
+
+    private DefaultTableCellRenderer createPaddedRenderer(int alignment) {
+        return new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                lbl.setHorizontalAlignment(alignment);
+                lbl.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
+                if (isSelected) {
+                    lbl.setBackground(SELECTION_BG);
+                    lbl.setForeground(SELECTION_FG);
+                    lbl.setFont(lbl.getFont().deriveFont(Font.BOLD));
+                } else {
+                    lbl.setBackground(Color.WHITE);
+                    lbl.setForeground(TEXT_PRIMARY);
+                }
+                return lbl;
+            }
+        };
+    }
+
+    private static class PillCellPanel extends JPanel {
+        private final JLabel pillLabel = new JLabel();
+        private Color pillBg = new Color(241, 245, 249);
+
+        PillCellPanel() {
+            setLayout(new FlowLayout(FlowLayout.CENTER, 0, 8));
+            setOpaque(true);
+            pillLabel.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            pillLabel.setBorder(BorderFactory.createEmptyBorder(3, 10, 3, 10));
+            pillLabel.setOpaque(false);
+            add(pillLabel);
+        }
+
+        void configure(String text, Color bg, Color fg, boolean isSelected) {
+            pillLabel.setText(text);
+            pillLabel.setForeground(fg);
+            this.pillBg = bg;
+            setBackground(isSelected ? SELECTION_BG : Color.WHITE);
+        }
+
+        @Override
+        protected void paintChildren(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(pillBg);
+            g2.fillRoundRect(pillLabel.getX(), pillLabel.getY(), pillLabel.getWidth(), pillLabel.getHeight(), 14, 14);
+            g2.dispose();
+            super.paintChildren(g);
+        }
+    }
+
+    private static class KapasitasPillRenderer extends DefaultTableCellRenderer {
+        private final PillCellPanel cell = new PillCellPanel();
+
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
                                                        boolean hasFocus, int row, int column) {
-            JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-
-            if (value instanceof String str) {
-                if (str.startsWith("OVER:")) {
-                    lbl.setText("  " + str.substring(5) + "  ");
-                    lbl.setBackground(new Color(254, 242, 242)); // Soft red
-                    lbl.setForeground(new Color(220, 38, 38));
-                    lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
-                } else if (str.startsWith("OK:")) {
-                    lbl.setText("  " + str.substring(3) + "  ");
-                    lbl.setBackground(new Color(240, 253, 244)); // Soft green
-                    lbl.setForeground(new Color(22, 163, 74));
-                    lbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-                } else if (str.startsWith("EMPTY:")) {
-                    lbl.setText("  " + str.substring(6) + "  ");
-                    lbl.setBackground(new Color(241, 245, 249)); // Neutral
-                    lbl.setForeground(new Color(148, 163, 184));
-                    lbl.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-                }
-                lbl.setOpaque(true);
+            String str = value != null ? value.toString() : "";
+            if (str.startsWith("OVER:")) {
+                cell.configure(str.substring(5), new Color(254, 226, 226), new Color(185, 28, 28), isSelected);
+            } else if (str.startsWith("OK:")) {
+                cell.configure(str.substring(3), new Color(220, 252, 231), new Color(22, 101, 52), isSelected);
+            } else if (str.startsWith("EMPTY:")) {
+                cell.configure(str.substring(6), new Color(241, 245, 249), new Color(100, 116, 139), isSelected);
+            } else {
+                cell.configure(str, new Color(241, 245, 249), new Color(71, 85, 105), isSelected);
             }
-            return lbl;
+            return cell;
+        }
+    }
+
+    private static class StatusAnggotaPillRenderer extends DefaultTableCellRenderer {
+        private final PillCellPanel cell = new PillCellPanel();
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                       boolean hasFocus, int row, int column) {
+            String status = value != null ? value.toString() : "-";
+            switch (status.toLowerCase()) {
+                case "aktif" -> cell.configure(status, new Color(220, 252, 231), new Color(22, 101, 52), isSelected);
+                case "vakum" -> cell.configure(status, new Color(254, 243, 199), new Color(146, 64, 14), isSelected);
+                default -> cell.configure(status, new Color(254, 226, 226), new Color(185, 28, 28), isSelected);
+            }
+            return cell;
         }
     }
 }

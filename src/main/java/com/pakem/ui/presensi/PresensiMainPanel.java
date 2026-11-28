@@ -31,8 +31,8 @@ public class PresensiMainPanel extends JPanel {
         presensiPanel = new PresensiPanel(presensiService, latihanService, currentUser);
         rekapPresensiPanel = new RekapPresensiPanel(presensiService, kategoriService, currentUser);
 
-        tabbedPane.addTab("📝 Catat Presensi Sesi", presensiPanel);
-        tabbedPane.addTab("📊 Rekapitulasi Kehadiran", rekapPresensiPanel);
+        tabbedPane.addTab("Catat Presensi Sesi", presensiPanel);
+        tabbedPane.addTab("Rekapitulasi Kehadiran", rekapPresensiPanel);
 
         // Auto reload data saat tab berpindah
         tabbedPane.addChangeListener(e -> {
