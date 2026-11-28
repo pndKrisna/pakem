@@ -3,11 +3,13 @@ package com.pakem.ui;
 import com.pakem.model.User;
 import com.pakem.model.enums.RoleUser;
 import com.pakem.service.impl.AnggotaServiceImpl;
+import com.pakem.service.impl.DashboardServiceImpl;
 import com.pakem.service.impl.EventServiceImpl;
 import com.pakem.service.impl.IuranServiceImpl;
 import com.pakem.service.impl.KategoriServiceImpl;
 import com.pakem.service.impl.LatihanServiceImpl;
 import com.pakem.service.impl.PresensiServiceImpl;
+import com.pakem.service.interfaces.IDashboardService;
 import com.pakem.service.interfaces.IAnggotaService;
 import com.pakem.service.interfaces.IAuthService;
 import com.pakem.service.interfaces.IEventService;
@@ -16,11 +18,13 @@ import com.pakem.service.interfaces.IKategoriService;
 import com.pakem.service.interfaces.ILatihanService;
 import com.pakem.service.interfaces.IPresensiService;
 import com.pakem.ui.anggota.AnggotaListPanel;
+import com.pakem.ui.dashboard.DashboardPanel;
 import com.pakem.ui.event.EventListPanel;
 import com.pakem.ui.iuran.IuranPanel;
 import com.pakem.ui.kategori.KategoriTingkatPanel;
 import com.pakem.ui.latihan.JadwalLatihanPanel;
 import com.pakem.ui.latihan.MateriTabuhPanel;
+import com.pakem.ui.pengaturan.PengaturanPanel;
 import com.pakem.ui.presensi.PresensiMainPanel;
 
 import javax.swing.BorderFactory;
@@ -62,6 +66,7 @@ public class MainFrame extends JFrame {
     private final IPresensiService presensiService;
     private final IEventService eventService;
     private final IIuranService iuranService;
+    private final IDashboardService dashboardService;
     private final CardLayout mainCardLayout;
     private final JPanel mainContainer;
 
@@ -73,30 +78,42 @@ public class MainFrame extends JFrame {
     private final List<JButton> sidebarButtons = new ArrayList<>();
 
     public MainFrame(IAuthService authService) {
-        this(authService, new AnggotaServiceImpl(), new KategoriServiceImpl(), new LatihanServiceImpl(), new PresensiServiceImpl(), new EventServiceImpl(), new IuranServiceImpl());
+        this(authService, new AnggotaServiceImpl(), new KategoriServiceImpl(), new LatihanServiceImpl(),
+                new PresensiServiceImpl(), new EventServiceImpl(), new IuranServiceImpl(), new DashboardServiceImpl());
     }
 
     public MainFrame(IAuthService authService, IAnggotaService anggotaService,
                      IKategoriService kategoriService, ILatihanService latihanService) {
-        this(authService, anggotaService, kategoriService, latihanService, new PresensiServiceImpl(), new EventServiceImpl(), new IuranServiceImpl());
+        this(authService, anggotaService, kategoriService, latihanService,
+                new PresensiServiceImpl(), new EventServiceImpl(), new IuranServiceImpl(), new DashboardServiceImpl());
     }
 
     public MainFrame(IAuthService authService, IAnggotaService anggotaService,
                      IKategoriService kategoriService, ILatihanService latihanService,
                      IPresensiService presensiService) {
-        this(authService, anggotaService, kategoriService, latihanService, presensiService, new EventServiceImpl(), new IuranServiceImpl());
+        this(authService, anggotaService, kategoriService, latihanService,
+                presensiService, new EventServiceImpl(), new IuranServiceImpl(), new DashboardServiceImpl());
     }
 
     public MainFrame(IAuthService authService, IAnggotaService anggotaService,
                      IKategoriService kategoriService, ILatihanService latihanService,
                      IPresensiService presensiService, IEventService eventService) {
-        this(authService, anggotaService, kategoriService, latihanService, presensiService, eventService, new IuranServiceImpl());
+        this(authService, anggotaService, kategoriService, latihanService,
+                presensiService, eventService, new IuranServiceImpl(), new DashboardServiceImpl());
     }
 
     public MainFrame(IAuthService authService, IAnggotaService anggotaService,
                      IKategoriService kategoriService, ILatihanService latihanService,
                      IPresensiService presensiService, IEventService eventService,
                      IIuranService iuranService) {
+        this(authService, anggotaService, kategoriService, latihanService,
+                presensiService, eventService, iuranService, new DashboardServiceImpl());
+    }
+
+    public MainFrame(IAuthService authService, IAnggotaService anggotaService,
+                     IKategoriService kategoriService, ILatihanService latihanService,
+                     IPresensiService presensiService, IEventService eventService,
+                     IIuranService iuranService, IDashboardService dashboardService) {
         this.authService = authService;
         this.anggotaService = anggotaService;
         this.kategoriService = kategoriService;
@@ -104,6 +121,7 @@ public class MainFrame extends JFrame {
         this.presensiService = presensiService;
         this.eventService = eventService;
         this.iuranService = iuranService;
+        this.dashboardService = dashboardService;
         this.mainCardLayout = new CardLayout();
         this.mainContainer = new JPanel(mainCardLayout);
 
@@ -159,8 +177,8 @@ public class MainFrame extends JFrame {
         contentCardLayout = new CardLayout();
         contentArea = new JPanel(contentCardLayout);
 
-        // Tambah Halaman Dashboard
-        contentArea.add(createDashboardPanel(user), "NAV_DASHBOARD");
+        // Modul Fase 8: Dashboard Ringkasan Interaktif
+        contentArea.add(new DashboardPanel(dashboardService, user), "NAV_DASHBOARD");
 
         // Modul Fase 2: Manajemen Data Anggota Aktif
         contentArea.add(new AnggotaListPanel(anggotaService, user), "NAV_ANGGOTA");
@@ -183,9 +201,9 @@ public class MainFrame extends JFrame {
             contentArea.add(new IuranPanel(iuranService, user), "NAV_IURAN");
         }
 
+        // Modul Fase 8: Pengaturan Sanggar (Konfigurasi Key-Value)
         if (user.canAccessPengaturan()) {
-            contentArea.add(createPlaceholderPanel("Pengaturan Sanggar", "Fase 8",
-                    "Hak Akses: Penuh (Nama Sanggar, Ambang Batas Kuning/Merah, Kapasitas Kelompok)"), "NAV_PENGATURAN");
+            contentArea.add(new PengaturanPanel(iuranService, user), "NAV_PENGATURAN");
         }
 
         appPanel.add(contentArea, BorderLayout.CENTER);
@@ -353,155 +371,6 @@ public class MainFrame extends JFrame {
                 btn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
             }
         }
-    }
-
-    private JPanel createDashboardPanel(User user) {
-        JPanel root = new JPanel();
-        root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
-        root.setBackground(new Color(241, 245, 249));
-        root.setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
-
-        // Welcome Banner Card
-        JPanel banner = new JPanel(new BorderLayout());
-        banner.setBackground(Color.WHITE);
-        banner.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true),
-                BorderFactory.createEmptyBorder(20, 24, 20, 24)
-        ));
-        banner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
-
-        JPanel bannerText = new JPanel();
-        bannerText.setLayout(new BoxLayout(bannerText, BoxLayout.Y_AXIS));
-        bannerText.setOpaque(false);
-
-        JLabel lblGreeting = new JLabel("Selamat Datang, " + user.getUsername() + "!");
-        lblGreeting.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblGreeting.setForeground(new Color(15, 23, 42));
-
-        JLabel lblDesc = new JLabel("Anda masuk sebagai " + user.getRole().getLabel() + ". Hak akses modul diatur secara otomatis.");
-        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblDesc.setForeground(new Color(100, 116, 139));
-
-        bannerText.add(lblGreeting);
-        bannerText.add(Box.createVerticalStrut(4));
-        bannerText.add(lblDesc);
-
-        banner.add(bannerText, BorderLayout.WEST);
-        root.add(banner);
-        root.add(Box.createVerticalStrut(20));
-
-        // Matriks Hak Akses Peran (PBO Polymorphism in Action)
-        JPanel accessCard = new JPanel(new BorderLayout());
-        accessCard.setBackground(Color.WHITE);
-        accessCard.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true),
-                BorderFactory.createEmptyBorder(20, 24, 20, 24)
-        ));
-
-        JLabel lblAccessTitle = new JLabel("Matriks Hak Akses Peran Aktif (" + user.getRole().getLabel() + ")");
-        lblAccessTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblAccessTitle.setForeground(new Color(30, 41, 59));
-        accessCard.add(lblAccessTitle, BorderLayout.NORTH);
-
-        JPanel gridPanel = new JPanel(new GridLayout(0, 2, 16, 12));
-        gridPanel.setOpaque(false);
-        gridPanel.setBorder(BorderFactory.createEmptyBorder(16, 0, 0, 0));
-
-        addPermissionRow(gridPanel, "Kelola Identitas & Status Anggota", user.canEditAnggota());
-        addPermissionRow(gridPanel, "Ubah / Usulan Tingkat Anggota", user.canUpdateTingkatAnggota());
-        addPermissionRow(gridPanel, "Kelola Master Kategori & Auto-Grouping", user.canManageKategoriTingkat());
-        addPermissionRow(gridPanel, "Kelola Jadwal Latihan & Progres Tabuh", user.canManageJadwalLatihan());
-        addPermissionRow(gridPanel, "Catat & Rekapitulasi Presensi Latihan", user.canRecordPresensi());
-        addPermissionRow(gridPanel, "Kelola Acara Pertunjukan & Tim", user.canManageEvent());
-        addPermissionRow(gridPanel, "Catat Kesediaan Calon Pemain Event", user.canRecordKesediaanPemain());
-        addPermissionRow(gridPanel, "Pencatatan Honor Job Pertunjukan", user.canAccessHonor());
-        addPermissionRow(gridPanel, "Modul Iuran Bulanan & Rekap Keuangan", user.canAccessIuran());
-        addPermissionRow(gridPanel, "Konfigurasi Pengaturan Sanggar", user.canAccessPengaturan());
-
-        accessCard.add(gridPanel, BorderLayout.CENTER);
-        root.add(accessCard);
-
-        root.add(Box.createVerticalGlue());
-
-        JScrollPane scrollPane = new JScrollPane(root);
-        scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(14);
-
-        JPanel container = new JPanel(new BorderLayout());
-        container.add(scrollPane, BorderLayout.CENTER);
-        return container;
-    }
-
-    private void addPermissionRow(JPanel parent, String feature, boolean allowed) {
-        JPanel row = new JPanel(new BorderLayout());
-        row.setOpaque(false);
-
-        JLabel lblFeature = new JLabel("• " + feature);
-        lblFeature.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblFeature.setForeground(new Color(51, 65, 85));
-
-        JLabel lblStatus = new JLabel(allowed ? "  DIIZINKAN  " : "  TIDAK DIIZINKAN  ");
-        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblStatus.setOpaque(true);
-        if (allowed) {
-            lblStatus.setBackground(new Color(240, 253, 244));
-            lblStatus.setForeground(new Color(22, 163, 74));
-            lblStatus.setBorder(BorderFactory.createLineBorder(new Color(187, 247, 208), 1, true));
-        } else {
-            lblStatus.setBackground(new Color(254, 242, 242));
-            lblStatus.setForeground(new Color(220, 38, 38));
-            lblStatus.setBorder(BorderFactory.createLineBorder(new Color(254, 202, 202), 1, true));
-        }
-
-        row.add(lblFeature, BorderLayout.WEST);
-        row.add(lblStatus, BorderLayout.EAST);
-        parent.add(row);
-    }
-
-    private JPanel createPlaceholderPanel(String title, String phase, String accessInfo) {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(new Color(241, 245, 249));
-
-        JPanel card = new JPanel();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true),
-                BorderFactory.createEmptyBorder(32, 40, 32, 40)
-        ));
-        card.setMaximumSize(new Dimension(540, 260));
-        card.setPreferredSize(new Dimension(540, 260));
-
-        JLabel lblPhase = new JLabel("RENCANA PENGERJAAN: " + phase.toUpperCase());
-        lblPhase.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblPhase.setForeground(new Color(37, 99, 235));
-        lblPhase.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel lblTitle = new JLabel(title);
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        lblTitle.setForeground(new Color(15, 23, 42));
-        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel lblInfo = new JLabel(accessInfo);
-        lblInfo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblInfo.setForeground(new Color(71, 85, 105));
-        lblInfo.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel lblNote = new JLabel("Modul ini siap dikembangkan pada tahapan sprint berikutnya.");
-        lblNote.setFont(new Font("Segoe UI", Font.ITALIC, 12));
-        lblNote.setForeground(new Color(148, 163, 184));
-        lblNote.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        card.add(lblPhase);
-        card.add(Box.createVerticalStrut(8));
-        card.add(lblTitle);
-        card.add(Box.createVerticalStrut(14));
-        card.add(lblInfo);
-        card.add(Box.createVerticalStrut(12));
-        card.add(lblNote);
-
-        panel.add(card);
-        return panel;
     }
 
     private void performLogout() {

@@ -4,9 +4,9 @@ Dokumen ini mencatat riwayat pengerjaan bertahap, class penting yang telah dibua
 
 ---
 
-## 📌 Status Terakhir: Fase 7 Selesai (Iuran Bulanan)
+## 📌 Status Terakhir: Fase 8 Selesai (Pengaturan Sanggar & Dashboard Ringkasan)
 - **Tanggal:** 27 November 2026
-- **Status:** ✅ Selesai, Terintegrasi dengan Database MySQL, & Teruji 100%
+- **Status:** ✅ Selesai, Terintegrasi Penuh (Seluruh Fitur MVP v1.0 Rampung)
 - **Target Platform:** Java 25, Apache Maven, FlatLaf, MySQL JDBC
 
 ---
@@ -384,6 +384,42 @@ mvn compile exec:java
 
 ---
 
-## ⏭️ Modul Berikutnya: Fase 8 (Pengaturan Sanggar)
-1. **UI:** `PengaturanPanel` (nama sanggar, nominal default, ambang batas kuning/merah, kapasitas kelompok).
-2. **Integrasi:** Sidebar menu "Pengaturan Sanggar" untuk Pengurus.
+### 🔹 Fase 8 — Pengaturan Sanggar & Dashboard Ringkasan (Selesai ✅)
+
+#### 1. Lapisan Model & DTO
+- **`com.pakem.model.DashboardSummary`**: DTO pembawa data ringkasan metrik (total anggota, jumlah per status keanggotaan aktif/vakum/nonaktif, jadwal latihan & pertunjukan terdekat, persentase kehadiran bulan berjalan, status pelunasan iuran bulan berjalan).
+
+#### 2. Lapisan Logika Bisnis (Service Layer)
+- **`com.pakem.service.interfaces.IDashboardService`** & **`DashboardServiceImpl`**:
+  - `getSummary()`: Agregasi data lintas modul (anggota, jadwal, event, presensi, dan iuran) secara real-time.
+  - `getJadwalLatihanTerdekat(limit)`: Mengambil daftar sesi latihan mendatang terurut tanggal terdekat.
+  - `getEventTerdekat(limit)`: Mengambil daftar agenda pertunjukan mendatang terurut tanggal terdekat.
+  - Pengaturan Sanggar terkelola via `IIuranService` & `SettingsDaoImpl` (key-value `settings`).
+
+#### 3. Lapisan Antarmuka Pengguna (Swing + FlatLaf UI)
+- **`com.pakem.ui.pengaturan.PengaturanPanel`**:
+  - Form modern konfigurasi sanggar: Nama Sanggar, Nominal Default Iuran Bulanan, Batas Tanggal Kuning (Mendekati Batas), Batas Tanggal Merah (Menunggak), dan Kapasitas Anjuran Kelompok (orang).
+  - Tombol Simpan dengan validasi data (angka positif, batasan tanggal kuning < merah).
+  - Akses terbatas: Hanya dapat dibuka oleh pengguna dengan role **Pengurus**.
+- **`com.pakem.ui.dashboard.DashboardPanel`**:
+  - Banner sambutan interaktif berdasarkan user login & peran aktif.
+  - Stat Metric Cards (Total Anggota, Kehadiran Presensi Bulan Ini, Iuran Bulanan [khusus Pengurus], Total Jadwal Mendatang).
+  - Tabel Jadwal Latihan Terdekat (Tanggal, Waktu, Kelompok/Event, Lokasi).
+  - Tabel Pertunjukan/Event Terdekat (Tanggal, Nama Acara, Jenis Acara, Lokasi).
+- **Integrasi `MainFrame`**:
+  - Sidebar "Dashboard" langsung menampilkan `DashboardPanel` real-time.
+  - Sidebar "Pengaturan Sanggar" menampilkan `PengaturanPanel` (hanya tampil jika role = Pengurus).
+  - Seluruh placeholder di `MainFrame` kini telah digantikan dengan panel fungsional penuh!
+
+#### 4. Pengujian & Verifikasi
+- Pengujian otomatis pada `src/test/java/com/pakem/DashboardTest.java` langsung ke database MySQL:
+  - ✅ **Test 1:** Simpan & baca konfigurasi Pengaturan Sanggar berhasil.
+  - ✅ **Test 2:** Setup data uji dashboard berhasil.
+  - ✅ **Test 3:** Perhitungan statistik DashboardSummary akurat.
+  - ✅ **Test 4:** Query jadwal dan event mendatang terdekat berhasil.
+  - ✅ **Test 5:** Pembersihan data uji selesai.
+
+---
+
+## 🏆 Seluruh Rencana Tahapan Pengembangan Pakem v1.0 Rampung (Fase 0 s.d. Fase 8)
+Aplikasi telah memiliki fungsionalitas lengkap sesuai spesifikasi PRD v1.0 dan siap digunakan secara penuh.
