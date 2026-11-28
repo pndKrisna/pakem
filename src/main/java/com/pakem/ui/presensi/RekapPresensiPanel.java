@@ -36,8 +36,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Panel Rekapitulasi Kehadiran Latihan Anggota Sanggar (Fase 5).
- * Menampilkan statistik kehadiran, persentase keaktifan per anggota, dan ekspor teks.
+ * Panel Rekapitulasi Kehadiran Latihan Anggota Sanggar.
+ * Layout standar: Header + Filter + Table.
  */
 public class RekapPresensiPanel extends JPanel {
 
@@ -70,15 +70,16 @@ public class RekapPresensiPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(241, 245, 249));
 
-        // 1. Header
-        JPanel topContainer = new JPanel();
-        topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
-        topContainer.setBackground(Color.WHITE);
-        topContainer.setBorder(BorderFactory.createCompoundBorder(
+        // 1. Top Panel (Header + Filter)
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setBackground(Color.WHITE);
+        topPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
                 BorderFactory.createEmptyBorder(16, 24, 16, 24)
         ));
 
+        // Title Row
         JPanel titleRow = new JPanel(new BorderLayout());
         titleRow.setOpaque(false);
 
@@ -90,18 +91,20 @@ public class RekapPresensiPanel extends JPanel {
         lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblSubtitle.setForeground(new Color(100, 116, 139));
 
-        JPanel titleText = new JPanel();
-        titleText.setLayout(new BoxLayout(titleText, BoxLayout.Y_AXIS));
-        titleText.setOpaque(false);
-        titleText.add(lblTitle);
-        titleText.add(Box.createVerticalStrut(2));
-        titleText.add(lblSubtitle);
+        JPanel titleTextPanel = new JPanel();
+        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
+        titleTextPanel.setOpaque(false);
+        titleTextPanel.add(lblTitle);
+        titleTextPanel.add(Box.createVerticalStrut(2));
+        titleTextPanel.add(lblSubtitle);
 
-        titleRow.add(titleText, BorderLayout.WEST);
+        titleRow.add(titleTextPanel, BorderLayout.WEST);
+        topPanel.add(titleRow);
+        topPanel.add(Box.createVerticalStrut(14));
 
-        // Filter Bar
-        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
-        filterBar.setOpaque(false);
+        // Filter Row
+        JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        filterRow.setOpaque(false);
 
         JLabel lblKat = new JLabel("Kategori:");
         lblKat.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -109,7 +112,7 @@ public class RekapPresensiPanel extends JPanel {
 
         cmbKategori = new JComboBox<>();
         cmbKategori.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cmbKategori.setPreferredSize(new Dimension(150, 30));
+        cmbKategori.setPreferredSize(new Dimension(150, 32));
         cmbKategori.addActionListener(e -> onKategoriChanged());
 
         JLabel lblSub = new JLabel("Subkelompok:");
@@ -118,52 +121,58 @@ public class RekapPresensiPanel extends JPanel {
 
         cmbSubkelompok = new JComboBox<>();
         cmbSubkelompok.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cmbSubkelompok.setPreferredSize(new Dimension(150, 30));
+        cmbSubkelompok.setPreferredSize(new Dimension(150, 32));
 
         JLabel lblDari = new JLabel("Dari (YYYY-MM-DD):");
-        lblDari.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblDari.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblDari.setForeground(new Color(51, 65, 85));
 
         txtDariTanggal = new JTextField();
         txtDariTanggal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        txtDariTanggal.setPreferredSize(new Dimension(110, 30));
+        txtDariTanggal.setPreferredSize(new Dimension(110, 32));
+        txtDariTanggal.putClientProperty("JTextField.placeholderText", "YYYY-MM-DD");
 
         JLabel lblSampai = new JLabel("Sampai:");
-        lblSampai.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblSampai.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblSampai.setForeground(new Color(51, 65, 85));
 
         txtSampaiTanggal = new JTextField();
         txtSampaiTanggal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        txtSampaiTanggal.setPreferredSize(new Dimension(110, 30));
+        txtSampaiTanggal.setPreferredSize(new Dimension(110, 32));
+        txtSampaiTanggal.putClientProperty("JTextField.placeholderText", "YYYY-MM-DD");
 
         btnFilter = new JButton("Terapkan Filter");
         btnFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnFilter.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnFilter.setFocusPainted(false);
         btnFilter.addActionListener(e -> loadRekapData());
 
-        btnSalin = new JButton("📋 Salin Rekap Teks");
+        btnSalin = new JButton("Salin Rekap Teks");
         btnSalin.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnSalin.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnSalin.setFocusPainted(false);
         btnSalin.addActionListener(e -> salinRekapKeClipboard());
 
-        filterBar.add(lblKat);
-        filterBar.add(cmbKategori);
-        filterBar.add(lblSub);
-        filterBar.add(cmbSubkelompok);
-        filterBar.add(lblDari);
-        filterBar.add(txtDariTanggal);
-        filterBar.add(lblSampai);
-        filterBar.add(txtSampaiTanggal);
-        filterBar.add(btnFilter);
-        filterBar.add(btnSalin);
+        filterRow.add(lblKat);
+        filterRow.add(cmbKategori);
+        filterRow.add(Box.createHorizontalStrut(15));
+        filterRow.add(lblSub);
+        filterRow.add(cmbSubkelompok);
+        filterRow.add(Box.createHorizontalStrut(15));
+        filterRow.add(lblDari);
+        filterRow.add(txtDariTanggal);
+        filterRow.add(Box.createHorizontalStrut(10));
+        filterRow.add(lblSampai);
+        filterRow.add(txtSampaiTanggal);
+        filterRow.add(Box.createHorizontalStrut(15));
+        filterRow.add(btnFilter);
+        filterRow.add(Box.createHorizontalStrut(10));
+        filterRow.add(btnSalin);
 
-        topContainer.add(titleRow);
-        topContainer.add(Box.createVerticalStrut(10));
-        topContainer.add(filterBar);
+        topPanel.add(filterRow);
+        add(topPanel, BorderLayout.NORTH);
 
-        add(topContainer, BorderLayout.NORTH);
-
-        // 2. Tabel Rekapitulasi
+        // 2. Table Panel
         String[] columns = {
                 "ID", "Nama Anggota", "Kategori", "Subkelompok",
                 "Total Sesi", "Hadir", "Izin", "Sakit", "Alpa", "Persentase Kehadiran"
@@ -182,20 +191,21 @@ public class RekapPresensiPanel extends JPanel {
         tblRekap.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tblRekap.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         tblRekap.getTableHeader().setBackground(new Color(248, 250, 252));
+        tblRekap.getTableHeader().setForeground(new Color(71, 85, 105));
         tblRekap.setShowGrid(true);
         tblRekap.setGridColor(new Color(241, 245, 249));
 
-        // Column widths
-        tblRekap.getColumnModel().getColumn(0).setPreferredWidth(50);
-        tblRekap.getColumnModel().getColumn(1).setPreferredWidth(200);
-        tblRekap.getColumnModel().getColumn(2).setPreferredWidth(120);
-        tblRekap.getColumnModel().getColumn(3).setPreferredWidth(120);
-        tblRekap.getColumnModel().getColumn(4).setPreferredWidth(80);
-        tblRekap.getColumnModel().getColumn(5).setPreferredWidth(75);
-        tblRekap.getColumnModel().getColumn(6).setPreferredWidth(75);
-        tblRekap.getColumnModel().getColumn(7).setPreferredWidth(75);
-        tblRekap.getColumnModel().getColumn(8).setPreferredWidth(75);
-        tblRekap.getColumnModel().getColumn(9).setPreferredWidth(140);
+        // Column widths - reduced to fit sidebar-collapsed viewport
+        tblRekap.getColumnModel().getColumn(0).setPreferredWidth(45);
+        tblRekap.getColumnModel().getColumn(1).setPreferredWidth(160);
+        tblRekap.getColumnModel().getColumn(2).setPreferredWidth(100);
+        tblRekap.getColumnModel().getColumn(3).setPreferredWidth(100);
+        tblRekap.getColumnModel().getColumn(4).setPreferredWidth(70);
+        tblRekap.getColumnModel().getColumn(5).setPreferredWidth(65);
+        tblRekap.getColumnModel().getColumn(6).setPreferredWidth(65);
+        tblRekap.getColumnModel().getColumn(7).setPreferredWidth(65);
+        tblRekap.getColumnModel().getColumn(8).setPreferredWidth(65);
+        tblRekap.getColumnModel().getColumn(9).setPreferredWidth(110);
 
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
@@ -208,7 +218,9 @@ public class RekapPresensiPanel extends JPanel {
         // Custom Renderer for Persentase Kehadiran Badge
         tblRekap.getColumnModel().getColumn(9).setCellRenderer(new PersentaseBadgeRenderer());
 
-        add(new JScrollPane(tblRekap), BorderLayout.CENTER);
+        JScrollPane scrollTable = new JScrollPane(tblRekap);
+        scrollTable.setBorder(BorderFactory.createEmptyBorder(12, 24, 12, 24));
+        add(scrollTable, BorderLayout.CENTER);
     }
 
     private void loadKategoriFilter() {
@@ -303,13 +315,13 @@ public class RekapPresensiPanel extends JPanel {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("📊 *REKAPITULASI PRESENSI KEHADIRAN ANGGOTA SANGGAR*\n");
+        sb.append("REKAPITULASI PRESENSI KEHADIRAN ANGGOTA SANGGAR\n");
         sb.append("Generated on: ").append(LocalDate.now()).append("\n");
         sb.append("=========================================\n");
 
         for (RekapPresensi r : rekapList) {
             sb.append(String.format("• %s (%s / %s)\n", r.getNamaAnggota(), r.getNamaKategori(), r.getNamaSubkelompok()));
-            sb.append(String.format("  Kehadiran: %d Hadir, %d Izin, %d Sakit, %d Alpa (Total: %d Sesi) -> *%s*\n",
+            sb.append(String.format("  Kehadiran: %d Hadir, %d Izin, %d Sakit, %d Alpa (Total: %d Sesi) -> %s\n",
                     r.getJumlahHadir(), r.getJumlahIzin(), r.getJumlahSakit(), r.getJumlahAlpa(),
                     r.getTotalPertemuan(), r.getFormattedPersentase()));
         }
@@ -329,21 +341,23 @@ public class RekapPresensiPanel extends JPanel {
                                                        boolean hasFocus, int row, int column) {
             JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             lbl.setHorizontalAlignment(CENTER);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            lbl.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            lbl.setOpaque(true);
 
             if (value instanceof Number num) {
                 double pct = num.doubleValue();
                 lbl.setText(String.format("  %.1f%%  ", pct));
-                lbl.setOpaque(true);
 
                 if (!isSelected) {
                     if (pct >= 80.0) {
-                        lbl.setBackground(new Color(220, 252, 231)); // Soft green
+                        lbl.setBackground(new Color(220, 252, 231));
                         lbl.setForeground(new Color(21, 128, 61));
                     } else if (pct >= 50.0) {
-                        lbl.setBackground(new Color(254, 243, 199)); // Soft amber
+                        lbl.setBackground(new Color(254, 243, 199));
                         lbl.setForeground(new Color(180, 83, 9));
                     } else {
-                        lbl.setBackground(new Color(254, 226, 226)); // Soft red
+                        lbl.setBackground(new Color(254, 226, 226));
                         lbl.setForeground(new Color(220, 38, 38));
                     }
                 }

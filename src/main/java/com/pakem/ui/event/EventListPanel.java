@@ -41,7 +41,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Panel Utama Manajemen Acara Pertunjukan / Event (Fase 6).
+ * Panel Utama Manajemen Acara Pertunjukan / Event.
+ * Layout standar: Header + Toolbar + Filter + Table + Bottom Bar.
  */
 public class EventListPanel extends JPanel {
 
@@ -79,15 +80,16 @@ public class EventListPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(241, 245, 249));
 
-        // 1. Top Panel (Header & Toolbar Filter)
-        JPanel topContainer = new JPanel();
-        topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
-        topContainer.setBackground(Color.WHITE);
-        topContainer.setBorder(BorderFactory.createCompoundBorder(
+        // 1. Top Panel (Header, Action Buttons, Filter)
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setBackground(Color.WHITE);
+        topPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
                 BorderFactory.createEmptyBorder(16, 24, 16, 24)
         ));
 
+        // Title Row
         JPanel titleRow = new JPanel(new BorderLayout());
         titleRow.setOpaque(false);
 
@@ -99,30 +101,32 @@ public class EventListPanel extends JPanel {
         lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblSubtitle.setForeground(new Color(100, 116, 139));
 
-        JPanel titleText = new JPanel();
-        titleText.setLayout(new BoxLayout(titleText, BoxLayout.Y_AXIS));
-        titleText.setOpaque(false);
-        titleText.add(lblTitle);
-        titleText.add(Box.createVerticalStrut(2));
-        titleText.add(lblSubtitle);
+        JPanel titleTextPanel = new JPanel();
+        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
+        titleTextPanel.setOpaque(false);
+        titleTextPanel.add(lblTitle);
+        titleTextPanel.add(Box.createVerticalStrut(2));
+        titleTextPanel.add(lblSubtitle);
 
-        titleRow.add(titleText, BorderLayout.WEST);
+        titleRow.add(titleTextPanel, BorderLayout.WEST);
 
-        // Action Buttons Row (Top Right)
-        JPanel actionButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        actionButtons.setOpaque(false);
+        // Action Buttons Row (Right)
+        JPanel actionButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actionButtonPanel.setOpaque(false);
 
         btnTambah = new JButton("+ Tambah Acara");
         btnTambah.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnTambah.setBackground(new Color(37, 99, 235));
         btnTambah.setForeground(Color.WHITE);
         btnTambah.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnTambah.setFocusPainted(false);
         btnTambah.setVisible(currentUser.canManageEvent());
         btnTambah.addActionListener(e -> openAddDialog());
 
         btnUbah = new JButton("Ubah Acara");
         btnUbah.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnUbah.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnUbah.setFocusPainted(false);
         btnUbah.setEnabled(false);
         btnUbah.setVisible(currentUser.canManageEvent());
         btnUbah.addActionListener(e -> openEditDialog());
@@ -131,41 +135,45 @@ public class EventListPanel extends JPanel {
         btnHapus.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnHapus.setForeground(new Color(220, 38, 38));
         btnHapus.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnHapus.setFocusPainted(false);
         btnHapus.setEnabled(false);
         btnHapus.setVisible(currentUser.canManageEvent());
         btnHapus.addActionListener(e -> deleteEvent());
 
-        btnKelolaTim = new JButton("👥 Kelola Tim & Pemain...");
+        btnKelolaTim = new JButton("Kelola Tim & Pemain...");
         btnKelolaTim.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnKelolaTim.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnKelolaTim.setFocusPainted(false);
         btnKelolaTim.setEnabled(false);
         btnKelolaTim.addActionListener(e -> openKelolaTimDialog());
 
-        btnSalinWA = new JButton("📋 Salin WA");
+        btnSalinWA = new JButton("Salin WA");
         btnSalinWA.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnSalinWA.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnSalinWA.setFocusPainted(false);
         btnSalinWA.setEnabled(false);
         btnSalinWA.addActionListener(e -> salinPengumumanWA());
 
         JButton btnRefresh = new JButton("Refresh");
         btnRefresh.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnRefresh.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnRefresh.setFocusPainted(false);
         btnRefresh.addActionListener(e -> loadEventData());
 
-        actionButtons.add(btnTambah);
-        actionButtons.add(btnUbah);
-        actionButtons.add(btnHapus);
-        actionButtons.add(btnKelolaTim);
-        actionButtons.add(btnSalinWA);
-        actionButtons.add(btnRefresh);
+        actionButtonPanel.add(btnTambah);
+        actionButtonPanel.add(btnUbah);
+        actionButtonPanel.add(btnHapus);
+        actionButtonPanel.add(btnKelolaTim);
+        actionButtonPanel.add(btnSalinWA);
+        actionButtonPanel.add(btnRefresh);
 
-        titleRow.add(actionButtons, BorderLayout.EAST);
-        topContainer.add(titleRow);
-        topContainer.add(Box.createVerticalStrut(14));
+        titleRow.add(actionButtonPanel, BorderLayout.EAST);
+        topPanel.add(titleRow);
+        topPanel.add(Box.createVerticalStrut(14));
 
-        // Filter Bar
-        JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        filterBar.setOpaque(false);
+        // Filter Row
+        JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        filterRow.setOpaque(false);
 
         JLabel lblFilterJenis = new JLabel("Jenis Acara:");
         lblFilterJenis.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -173,7 +181,7 @@ public class EventListPanel extends JPanel {
 
         cmbFilterJenis = new JComboBox<>(new String[]{"Semua Jenis", "Pentas / Job", "Ngayah", "Ujian Kenaikan Tingkat"});
         cmbFilterJenis.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cmbFilterJenis.setPreferredSize(new Dimension(170, 30));
+        cmbFilterJenis.setPreferredSize(new Dimension(170, 32));
         cmbFilterJenis.addActionListener(e -> loadEventData());
 
         JLabel lblCari = new JLabel("Pencarian:");
@@ -182,7 +190,7 @@ public class EventListPanel extends JPanel {
 
         txtSearch = new JTextField();
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        txtSearch.setPreferredSize(new Dimension(200, 30));
+        txtSearch.setPreferredSize(new Dimension(200, 32));
         txtSearch.putClientProperty("JTextField.placeholderText", "Ketik nama acara, lokasi...");
         txtSearch.addKeyListener(new KeyAdapter() {
             @Override
@@ -197,37 +205,38 @@ public class EventListPanel extends JPanel {
         lblDari.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         txtDariTanggal = new JTextField();
         txtDariTanggal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        txtDariTanggal.setPreferredSize(new Dimension(100, 30));
+        txtDariTanggal.setPreferredSize(new Dimension(110, 32));
         txtDariTanggal.putClientProperty("JTextField.placeholderText", "YYYY-MM-DD");
 
         JLabel lblSampai = new JLabel("Sampai:");
         lblSampai.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         txtSampaiTanggal = new JTextField();
         txtSampaiTanggal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        txtSampaiTanggal.setPreferredSize(new Dimension(100, 30));
+        txtSampaiTanggal.setPreferredSize(new Dimension(110, 32));
         txtSampaiTanggal.putClientProperty("JTextField.placeholderText", "YYYY-MM-DD");
 
         btnFilter = new JButton("Filter");
         btnFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnFilter.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnFilter.setFocusPainted(false);
         btnFilter.addActionListener(e -> loadEventData());
 
-        filterBar.add(lblFilterJenis);
-        filterBar.add(cmbFilterJenis);
-        filterBar.add(Box.createHorizontalStrut(10));
-        filterBar.add(lblCari);
-        filterBar.add(txtSearch);
-        filterBar.add(Box.createHorizontalStrut(10));
-        filterBar.add(lblDari);
-        filterBar.add(txtDariTanggal);
-        filterBar.add(lblSampai);
-        filterBar.add(txtSampaiTanggal);
-        filterBar.add(btnFilter);
+        filterRow.add(lblFilterJenis);
+        filterRow.add(cmbFilterJenis);
+        filterRow.add(Box.createHorizontalStrut(15));
+        filterRow.add(lblCari);
+        filterRow.add(txtSearch);
+        filterRow.add(Box.createHorizontalStrut(10));
+        filterRow.add(lblDari);
+        filterRow.add(txtDariTanggal);
+        filterRow.add(lblSampai);
+        filterRow.add(txtSampaiTanggal);
+        filterRow.add(btnFilter);
 
-        topContainer.add(filterBar);
-        add(topContainer, BorderLayout.NORTH);
+        topPanel.add(filterRow);
+        add(topPanel, BorderLayout.NORTH);
 
-        // 2. Center Table
+        // 2. Table Panel
         String[] columns = {
                 "ID", "Nama Acara", "Jenis Acara", "Tanggal", "Waktu", "Lokasi", "Jumlah Tim", "Total Pemain", "Catatan"
         };
@@ -245,19 +254,20 @@ public class EventListPanel extends JPanel {
         tblEvent.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tblEvent.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         tblEvent.getTableHeader().setBackground(new Color(248, 250, 252));
+        tblEvent.getTableHeader().setForeground(new Color(71, 85, 105));
         tblEvent.setShowGrid(true);
         tblEvent.setGridColor(new Color(241, 245, 249));
 
-        // Column widths
-        tblEvent.getColumnModel().getColumn(0).setPreferredWidth(50);
-        tblEvent.getColumnModel().getColumn(1).setPreferredWidth(200);
-        tblEvent.getColumnModel().getColumn(2).setPreferredWidth(140);
-        tblEvent.getColumnModel().getColumn(3).setPreferredWidth(100);
-        tblEvent.getColumnModel().getColumn(4).setPreferredWidth(80);
-        tblEvent.getColumnModel().getColumn(5).setPreferredWidth(180);
-        tblEvent.getColumnModel().getColumn(6).setPreferredWidth(80);
-        tblEvent.getColumnModel().getColumn(7).setPreferredWidth(90);
-        tblEvent.getColumnModel().getColumn(8).setPreferredWidth(200);
+        // Column widths - reduced to fit sidebar-collapsed viewport
+        tblEvent.getColumnModel().getColumn(0).setPreferredWidth(45);
+        tblEvent.getColumnModel().getColumn(1).setPreferredWidth(160);
+        tblEvent.getColumnModel().getColumn(2).setPreferredWidth(120);
+        tblEvent.getColumnModel().getColumn(3).setPreferredWidth(90);
+        tblEvent.getColumnModel().getColumn(4).setPreferredWidth(70);
+        tblEvent.getColumnModel().getColumn(5).setPreferredWidth(140);
+        tblEvent.getColumnModel().getColumn(6).setPreferredWidth(70);
+        tblEvent.getColumnModel().getColumn(7).setPreferredWidth(80);
+        tblEvent.getColumnModel().getColumn(8).setPreferredWidth(160);
 
         DefaultTableCellRenderer center = new DefaultTableCellRenderer();
         center.setHorizontalAlignment(JLabel.CENTER);
@@ -296,7 +306,21 @@ public class EventListPanel extends JPanel {
             }
         });
 
-        add(new JScrollPane(tblEvent), BorderLayout.CENTER);
+        JScrollPane scrollTable = new JScrollPane(tblEvent);
+        scrollTable.setBorder(BorderFactory.createEmptyBorder(12, 24, 12, 24));
+        add(scrollTable, BorderLayout.CENTER);
+
+        // 3. Bottom Summary Bar
+        JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 10));
+        bottomBar.setBackground(Color.WHITE);
+        bottomBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)));
+
+        JLabel lblSummary = new JLabel("Total Acara: 0");
+        lblSummary.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblSummary.setForeground(new Color(30, 41, 59));
+        bottomBar.add(lblSummary);
+
+        add(bottomBar, BorderLayout.SOUTH);
     }
 
     public void loadEventData() {
@@ -349,6 +373,10 @@ public class EventListPanel extends JPanel {
             btnHapus.setEnabled(false);
             btnKelolaTim.setEnabled(false);
             btnSalinWA.setEnabled(false);
+
+            // Update summary
+            JLabel lblSummary = (JLabel) ((JPanel) getComponent(2)).getComponent(0);
+            lblSummary.setText("Total Acara: " + list.size());
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Gagal memuat acara pertunjukan: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -421,16 +449,17 @@ public class EventListPanel extends JPanel {
                                                        boolean hasFocus, int row, int column) {
             JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             lbl.setHorizontalAlignment(CENTER);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            lbl.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            lbl.setOpaque(true);
 
             if (value instanceof JenisAcara jenis) {
                 lbl.setText("  " + jenis.getLabel() + "  ");
-                lbl.setOpaque(true);
-
                 if (!isSelected) {
                     switch (jenis) {
                         case JOB -> {
                             lbl.setBackground(new Color(238, 242, 255));
-                            lbl.setForeground(new Color(37, 99, 235));
+                            lbl.setForeground(new Color(79, 70, 229));
                         }
                         case NGAYAH -> {
                             lbl.setBackground(new Color(240, 253, 244));

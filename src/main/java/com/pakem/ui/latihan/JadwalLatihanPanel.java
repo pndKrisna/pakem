@@ -34,7 +34,7 @@ import java.util.List;
 
 /**
  * Panel utama untuk Modul Jadwal Latihan (Rutin & Khusus Event).
- * Menampilkan daftar jadwal terurut waktu, dengan filter jenis dan kategori.
+ * Layout standar: Header + Toolbar + Filter + Table + Bottom Bar.
  */
 public class JadwalLatihanPanel extends JPanel {
 
@@ -70,19 +70,20 @@ public class JadwalLatihanPanel extends JPanel {
         setLayout(new BorderLayout());
         setBackground(new Color(241, 245, 249));
 
-        // Top Bar Header
-        JPanel topBar = new JPanel(new BorderLayout());
-        topBar.setBackground(Color.WHITE);
-        topBar.setBorder(BorderFactory.createCompoundBorder(
+        // 1. Top Panel (Header, Action Buttons, Filter)
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setBackground(Color.WHITE);
+        topPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
                 BorderFactory.createEmptyBorder(16, 24, 16, 24)
         ));
 
-        JPanel titleTextPanel = new JPanel();
-        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
-        titleTextPanel.setOpaque(false);
+        // Title Row
+        JPanel titleRow = new JPanel(new BorderLayout());
+        titleRow.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Jadwal Latihan & Materi Tabuh");
+        JLabel lblTitle = new JLabel("Jadwal Latihan");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblTitle.setForeground(new Color(15, 23, 42));
 
@@ -90,64 +91,32 @@ public class JadwalLatihanPanel extends JPanel {
         lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblSubtitle.setForeground(new Color(100, 116, 139));
 
+        JPanel titleTextPanel = new JPanel();
+        titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
+        titleTextPanel.setOpaque(false);
         titleTextPanel.add(lblTitle);
         titleTextPanel.add(Box.createVerticalStrut(2));
         titleTextPanel.add(lblSubtitle);
 
-        topBar.add(titleTextPanel, BorderLayout.WEST);
+        titleRow.add(titleTextPanel, BorderLayout.WEST);
 
-        if (!currentUser.canManageJadwalLatihan()) {
-            JPanel bannerPelatih = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            bannerPelatih.setOpaque(false);
-            JLabel lblPelatih = new JLabel("  Mode Pelatih: Lihat & Catat Progres  ");
-            lblPelatih.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            lblPelatih.setOpaque(true);
-            lblPelatih.setBackground(new Color(254, 243, 199));
-            lblPelatih.setForeground(new Color(180, 83, 9));
-            lblPelatih.setBorder(BorderFactory.createLineBorder(new Color(252, 211, 77), 1, true));
-            bannerPelatih.add(lblPelatih);
-            topBar.add(bannerPelatih, BorderLayout.EAST);
-        }
-
-        add(topBar, BorderLayout.NORTH);
-
-        // Toolbar Filter & Aksi
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
-        toolbar.setBackground(Color.WHITE);
-        toolbar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
-
-        JLabel lblJenis = new JLabel("Jenis:");
-        lblJenis.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblJenis.setForeground(new Color(51, 65, 85));
-
-        filterJenis = new JComboBox<>(new String[]{"Semua", "Rutin", "Khusus Event"});
-        filterJenis.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        filterJenis.setPreferredSize(new Dimension(130, 30));
-
-        JLabel lblKategori = new JLabel("Kategori:");
-        lblKategori.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblKategori.setForeground(new Color(51, 65, 85));
-
-        filterKategori = new JComboBox<>();
-        filterKategori.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        filterKategori.setPreferredSize(new Dimension(150, 30));
-
-        btnRefresh = new JButton("Refresh");
-        btnRefresh.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnRefresh.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnRefresh.addActionListener(e -> loadJadwalList());
+        // Action Buttons Row (Right)
+        JPanel actionButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actionButtonPanel.setOpaque(false);
 
         btnTambahJadwal = new JButton("+ Tambah Jadwal");
         btnTambahJadwal.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnTambahJadwal.setBackground(new Color(37, 99, 235));
         btnTambahJadwal.setForeground(Color.WHITE);
         btnTambahJadwal.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnTambahJadwal.setFocusPainted(false);
         btnTambahJadwal.setVisible(currentUser.canManageJadwalLatihan());
         btnTambahJadwal.addActionListener(e -> openAddJadwalDialog());
 
         btnUbahJadwal = new JButton("Ubah Jadwal");
         btnUbahJadwal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnUbahJadwal.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnUbahJadwal.setFocusPainted(false);
         btnUbahJadwal.setEnabled(false);
         btnUbahJadwal.setVisible(currentUser.canManageJadwalLatihan());
         btnUbahJadwal.addActionListener(e -> openEditJadwalDialog());
@@ -156,6 +125,7 @@ public class JadwalLatihanPanel extends JPanel {
         btnHapusJadwal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnHapusJadwal.setForeground(new Color(220, 38, 38));
         btnHapusJadwal.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnHapusJadwal.setFocusPainted(false);
         btnHapusJadwal.setEnabled(false);
         btnHapusJadwal.setVisible(currentUser.canManageJadwalLatihan());
         btnHapusJadwal.addActionListener(e -> deleteJadwal());
@@ -163,23 +133,67 @@ public class JadwalLatihanPanel extends JPanel {
         btnLihatSesi = new JButton("Lihat Sesi Materi");
         btnLihatSesi.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnLihatSesi.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnLihatSesi.setFocusPainted(false);
         btnLihatSesi.setEnabled(false);
         btnLihatSesi.addActionListener(e -> openSesiMateriDialog());
 
-        toolbar.add(lblJenis);
-        toolbar.add(filterJenis);
-        toolbar.add(lblKategori);
-        toolbar.add(filterKategori);
-        toolbar.add(btnRefresh);
-        toolbar.add(Box.createHorizontalStrut(20));
-        toolbar.add(btnTambahJadwal);
-        toolbar.add(btnUbahJadwal);
-        toolbar.add(btnHapusJadwal);
-        toolbar.add(btnLihatSesi);
+        btnRefresh = new JButton("Refresh");
+        btnRefresh.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnRefresh.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnRefresh.setFocusPainted(false);
+        btnRefresh.addActionListener(e -> loadJadwalList());
 
-        add(toolbar, BorderLayout.NORTH);
+        actionButtonPanel.add(btnTambahJadwal);
+        actionButtonPanel.add(btnUbahJadwal);
+        actionButtonPanel.add(btnHapusJadwal);
+        actionButtonPanel.add(btnLihatSesi);
+        actionButtonPanel.add(btnRefresh);
 
-        // Tabel Jadwal
+        if (!currentUser.canManageJadwalLatihan()) {
+            JLabel lblPelatih = new JLabel("  Mode Pelatih: Lihat & Catat Progres  ");
+            lblPelatih.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            lblPelatih.setOpaque(true);
+            lblPelatih.setBackground(new Color(254, 243, 199));
+            lblPelatih.setForeground(new Color(180, 83, 9));
+            lblPelatih.setBorder(BorderFactory.createLineBorder(new Color(252, 211, 77), 1, true));
+            actionButtonPanel.add(Box.createHorizontalStrut(12));
+            actionButtonPanel.add(lblPelatih);
+        }
+
+        titleRow.add(actionButtonPanel, BorderLayout.EAST);
+        topPanel.add(titleRow);
+        topPanel.add(Box.createVerticalStrut(14));
+
+        // Filter Row
+        JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        filterRow.setOpaque(false);
+
+        JLabel lblJenis = new JLabel("Jenis:");
+        lblJenis.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblJenis.setForeground(new Color(71, 85, 105));
+
+        filterJenis = new JComboBox<>(new String[]{"Semua", "Rutin", "Khusus Event"});
+        filterJenis.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        filterJenis.setPreferredSize(new Dimension(130, 32));
+
+        JLabel lblKategori = new JLabel("Kategori:");
+        lblKategori.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblKategori.setForeground(new Color(71, 85, 105));
+
+        filterKategori = new JComboBox<>();
+        filterKategori.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        filterKategori.setPreferredSize(new Dimension(150, 32));
+
+        filterRow.add(lblJenis);
+        filterRow.add(filterJenis);
+        filterRow.add(Box.createHorizontalStrut(15));
+        filterRow.add(lblKategori);
+        filterRow.add(filterKategori);
+
+        topPanel.add(filterRow);
+        add(topPanel, BorderLayout.NORTH);
+
+        // 2. Table Panel
         String[] columns = {"ID", "Tanggal", "Jam Mulai", "Jam Selesai", "Jenis", "Kategori", "Subkelompok", "Lokasi"};
         modelJadwal = new DefaultTableModel(columns, 0) {
             @Override
@@ -189,26 +203,33 @@ public class JadwalLatihanPanel extends JPanel {
         };
 
         tblJadwal = new JTable(modelJadwal);
-        tblJadwal.setRowHeight(34);
+        tblJadwal.setRowHeight(36);
         tblJadwal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         tblJadwal.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tblJadwal.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         tblJadwal.getTableHeader().setBackground(new Color(248, 250, 252));
+        tblJadwal.getTableHeader().setForeground(new Color(71, 85, 105));
+        tblJadwal.setShowGrid(true);
+        tblJadwal.setGridColor(new Color(241, 245, 249));
 
-        tblJadwal.getColumnModel().getColumn(0).setPreferredWidth(45);
+        // Column widths - reduced to fit sidebar-collapsed viewport
+        tblJadwal.getColumnModel().getColumn(0).setPreferredWidth(40);
         tblJadwal.getColumnModel().getColumn(1).setPreferredWidth(90);
         tblJadwal.getColumnModel().getColumn(2).setPreferredWidth(75);
         tblJadwal.getColumnModel().getColumn(3).setPreferredWidth(75);
         tblJadwal.getColumnModel().getColumn(4).setPreferredWidth(90);
-        tblJadwal.getColumnModel().getColumn(5).setPreferredWidth(120);
-        tblJadwal.getColumnModel().getColumn(6).setPreferredWidth(120);
-        tblJadwal.getColumnModel().getColumn(7).setPreferredWidth(150);
+        tblJadwal.getColumnModel().getColumn(5).setPreferredWidth(110);
+        tblJadwal.getColumnModel().getColumn(6).setPreferredWidth(110);
+        tblJadwal.getColumnModel().getColumn(7).setPreferredWidth(140);
 
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
         for (int i = 0; i <= 4; i++) {
             tblJadwal.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
         }
+
+        // Renderer Badge Jenis Jadwal
+        tblJadwal.getColumnModel().getColumn(4).setCellRenderer(new JenisJadwalBadgeRenderer());
 
         tblJadwal.getSelectionModel().addListSelectionListener(e -> {
             boolean has = tblJadwal.getSelectedRow() != -1;
@@ -223,9 +244,30 @@ public class JadwalLatihanPanel extends JPanel {
             }
         });
 
+        tblJadwal.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2 && tblJadwal.getSelectedRow() != -1) {
+                    openSesiMateriDialog();
+                }
+            }
+        });
+
         JScrollPane scrollTable = new JScrollPane(tblJadwal);
-        scrollTable.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        scrollTable.setBorder(BorderFactory.createEmptyBorder(12, 24, 12, 24));
         add(scrollTable, BorderLayout.CENTER);
+
+        // 3. Bottom Summary Bar
+        JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 10));
+        bottomBar.setBackground(Color.WHITE);
+        bottomBar.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)));
+
+        JLabel lblSummary = new JLabel("Total Jadwal: 0");
+        lblSummary.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblSummary.setForeground(new Color(30, 41, 59));
+        bottomBar.add(lblSummary);
+
+        add(bottomBar, BorderLayout.SOUTH);
 
         filterJenis.addActionListener(e -> applyFilter());
         filterKategori.addActionListener(e -> applyFilter());
@@ -258,7 +300,7 @@ public class JadwalLatihanPanel extends JPanel {
                         j.getTanggal().toString(),
                         j.getJamMulai() != null ? j.getJamMulai().toString() : "-",
                         j.getJamSelesai() != null ? j.getJamSelesai().toString() : "-",
-                        j.getJenisJadwal().getLabel(),
+                        j.getJenisJadwal(),
                         j.getNamaKategori(),
                         j.getNamaSubkelompok(),
                         j.getLokasi() != null ? j.getLokasi() : "-"
@@ -269,6 +311,10 @@ public class JadwalLatihanPanel extends JPanel {
             btnUbahJadwal.setEnabled(false);
             btnHapusJadwal.setEnabled(false);
             btnLihatSesi.setEnabled(false);
+
+            // Update summary
+            JLabel lblSummary = (JLabel) ((JPanel) getComponent(2)).getComponent(0);
+            lblSummary.setText("Total Jadwal: " + data.size());
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Gagal memuat jadwal latihan: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -284,6 +330,7 @@ public class JadwalLatihanPanel extends JPanel {
         int kategoriId = katItem instanceof KategoriTingkat ? ((KategoriTingkat) katItem).getId() : 0;
 
         modelJadwal.setRowCount(0);
+        int count = 0;
         for (JadwalLatihan j : jadwalList) {
             boolean matchJenis = jenis.equals("Semua") || j.getJenisJadwal().name().equalsIgnoreCase(jenis);
             boolean matchKategori = kategoriId == 0 || j.getKategoriTingkatId() != null && j.getKategoriTingkatId() == kategoriId;
@@ -293,13 +340,17 @@ public class JadwalLatihanPanel extends JPanel {
                         j.getTanggal().toString(),
                         j.getJamMulai() != null ? j.getJamMulai().toString() : "-",
                         j.getJamSelesai() != null ? j.getJamSelesai().toString() : "-",
-                        j.getJenisJadwal().getLabel(),
+                        j.getJenisJadwal(),
                         j.getNamaKategori(),
                         j.getNamaSubkelompok(),
                         j.getLokasi() != null ? j.getLokasi() : "-"
                 });
+                count++;
             }
         }
+        // Update summary
+        JLabel lblSummary = (JLabel) ((JPanel) getComponent(2)).getComponent(0);
+        lblSummary.setText("Total Jadwal: " + count);
     }
 
     private void openAddJadwalDialog() {
@@ -370,6 +421,38 @@ public class JadwalLatihanPanel extends JPanel {
         dialog.setVisible(true);
         if (dialog.isSaved()) {
             loadJadwalList();
+        }
+    }
+
+    /**
+     * Renderer badge khusus Jenis Jadwal.
+     */
+    private static class JenisJadwalBadgeRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                       boolean hasFocus, int row, int column) {
+            JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            lbl.setHorizontalAlignment(CENTER);
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            lbl.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+            lbl.setOpaque(true);
+
+            if (value instanceof com.pakem.model.enums.JenisJadwal jenis) {
+                lbl.setText("  " + jenis.getLabel() + "  ");
+                if (!isSelected) {
+                    switch (jenis) {
+                        case RUTIN -> {
+                            lbl.setBackground(new Color(238, 242, 255));
+                            lbl.setForeground(new Color(79, 70, 229));
+                        }
+                        case KHUSUS_EVENT -> {
+                            lbl.setBackground(new Color(240, 253, 244));
+                            lbl.setForeground(new Color(22, 163, 74));
+                        }
+                    }
+                }
+            }
+            return lbl;
         }
     }
 }
